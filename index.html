@@ -3,547 +3,427 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>BTC Signal Engine</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BTC EDGE AI PRO</title>
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;background:#080c14;color:#eef3ff;
- font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
- padding:20px 16px 40px
-}
-.wrap{max-width:520px;margin:auto}
-header{display:flex;justify-content:space-between;align-items:center}
-h1{font-size:22px;margin:8px 0}
-.muted{color:#8290a8;font-size:12px}
-.card{
- background:#111a29;border:1px solid #243148;
- border-radius:17px;padding:18px;margin-top:15px
-}
-.price{font-size:35px;font-weight:800;margin:12px 0}
-.status{font-size:12px;color:#9baac0}
-.dot{display:inline-block;width:8px;height:8px;
- border-radius:50%;background:#e5a63c;margin-right:7px}
-.dot.live{background:#26d982}
-.signal{
- text-align:center;padding:27px 12px;
- border-radius:14px;background:#172236;margin-top:15px
-}
-.signal h2{font-size:44px;margin:10px 0}
-.up{color:#20df91}
-.down{color:#ff586d}
-.wait{color:#f5bd55}
-.big{font-size:17px;font-weight:700}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.metric{
- background:#182438;padding:13px;border-radius:12px
-}
-.metric b{display:block;font-size:19px;margin-top:7px}
-.section{margin:20px 0 9px;font-weight:700}
-.bar{height:7px;background:#28354a;border-radius:8px;overflow:hidden;margin-top:9px}
-.fill{height:100%;width:0%;background:#27d993}
-button{
- border:0;border-radius:10px;padding:12px 15px;
- background:#24344c;color:white;font-weight:700
-}
-button:active{opacity:.7}
-ul{padding-left:19px;color:#aebbd0;font-size:13px;line-height:1.9}
-.footer{text-align:center;color:#687990;font-size:11px;margin-top:22px}
+body{margin:0;padding:16px;background:#080d16;color:white;font-family:Arial,sans-serif}
+h1{color:#f7931a}
+.card{background:#151e2d;border:1px solid #29374c;border-radius:15px;padding:17px;margin:14px 0}
+.muted{color:#94a3b8;font-size:13px}
+.price{font-size:35px;font-weight:bold;margin:12px 0}
+.signal{font-size:40px;font-weight:bold;margin:12px 0}
+.green{color:#22c55e}.red{color:#ef4444}.orange{color:#f7931a}
+.row{display:flex;justify-content:space-between;gap:10px;margin:13px 0}
+button,select{width:100%;padding:14px;border-radius:10px;font-weight:bold}
+button{background:#f7931a;border:0;margin-top:10px}
+select{background:#202c3e;color:white;border:1px solid #475569}
+.trade{background:#202c3e;padding:12px;border-radius:9px;margin:8px 0;font-size:13px}
+.small{font-size:11px;color:#94a3b8}
 </style>
 </head>
 <body>
-<div class="wrap">
 
-<header>
- <div>
-  <h1>BTC SIGNAL ENGINE</h1>
-  <div class="muted">BTC / USDT · Binance Spot</div>
- </div>
- <div class="status"><span class="dot" id="dot"></span><span id="connection">CONNECTING</span></div>
-</header>
+<h1>₿ BTC EDGE AI PRO</h1>
+<div class="muted">Live Bitcoin · Automatic Paper Trading</div>
 
 <div class="card">
- <div class="muted">LIVE BITCOIN PRICE</div>
- <div class="price" id="price">Loading...</div>
- <div class="status">Last tick: <span id="tick">--</span></div>
- <div class="status">Exchange: Binance</div>
-</div>
-
-<div class="signal" id="signalBox">
- <div class="muted">NEXT 5-MINUTE DIRECTION</div>
- <h2 id="signal">WAIT</h2>
- <div class="big" id="reason">Collecting market data...</div>
- <div class="muted" style="margin-top:12px">
- Setup score: <span id="score">--</span>
- </div>
+<div class="muted">LIVE BTC PRICE</div>
+<div class="price" id="price">Connecting...</div>
+<div id="connection" class="orange">Connecting...</div>
+<div class="muted" id="feedAge">Waiting for feed</div>
 </div>
 
 <div class="card">
- <div class="section">MARKET TIMING</div>
- <div class="grid">
-  <div class="metric">
-   <div class="muted">5-MINUTE TIMER</div>
-   <b id="timer">--:--</b>
-  </div>
-  <div class="metric">
-   <div class="muted">1-MIN MOMENTUM</div>
-   <b id="momentum">--</b>
-  </div>
-  <div class="metric">
-   <div class="muted">RSI (14)</div>
-   <b id="rsi">--</b>
-  </div>
-  <div class="metric">
-   <div class="muted">VOLUME RATIO</div>
-   <b id="volume">--</b>
-  </div>
-  <div class="metric">
-   <div class="muted">EMA 9 / 21</div>
-   <b id="ema">--</b>
-  </div>
-  <div class="metric">
-   <div class="muted">MACD</div>
-   <b id="macd">--</b>
-  </div>
- </div>
+<h3>Trading Mode</h3>
+<select id="mode">
+<option value="scalp">SCALPING · 60 SECONDS</option>
+<option value="five">5-MINUTE TRADING</option>
+</select>
+<p class="muted" id="description">Short-term momentum strategy.</p>
 </div>
 
 <div class="card">
- <div class="section">SIGNAL AGREEMENT</div>
- <div class="muted">Bullish confirmation</div>
- <div class="bar"><div class="fill" id="bullBar"></div></div>
- <div class="muted" style="margin-top:15px">Bearish confirmation</div>
- <div class="bar"><div class="fill" id="bearBar"></div></div>
- <div class="section">CONFIRMATION CHECKS</div>
- <ul id="checks">
-  <li>Waiting for candles...</li>
- </ul>
+<div class="muted">CURRENT MARKET SIGNAL</div>
+<div class="signal" id="signal">WAIT</div>
+<div id="agreement">Collecting data</div>
+<p class="muted" id="reason">Waiting for market confirmation.</p>
 </div>
 
 <div class="card">
- <div class="section">DATA QUALITY</div>
- <div class="grid">
-  <div class="metric">
-   <div class="muted">CANDLES LOADED</div>
-   <b id="candles">0</b>
-  </div>
-  <div class="metric">
-   <div class="muted">LAST UPDATE</div>
-   <b id="updated">--</b>
-  </div>
- </div>
- <button onclick="reconnect()" style="width:100%;margin-top:15px">
- RECONNECT DATA
- </button>
+<h3>Market Indicators</h3>
+<div class="row"><span class="muted">15-second momentum</span><b id="micro">--</b></div>
+<div class="row"><span class="muted">60-second momentum</span><b id="minuteMomentum">--</b></div>
+<div class="row"><span class="muted">5-minute momentum</span><b id="momentum">--</b></div>
+<div class="row"><span class="muted">RSI</span><b id="rsi">--</b></div>
+<div class="row"><span class="muted">EMA trend</span><b id="trend">--</b></div>
 </div>
 
-<div class="footer">
- SIGNALS ARE TECHNICAL INDICATOR OUTPUTS, NOT GUARANTEED PREDICTIONS.
- BINANCE SPOT PRICES ARE NOT POLYMARKET SETTLEMENT PRICES.
+<div class="card">
+<h3>Active Paper Trade</h3>
+<div class="signal" id="activeDirection">NONE</div>
+<div class="row"><span class="muted">Entry</span><b id="entry">--</b></div>
+<div class="row"><span class="muted">Live price</span><b id="tradePrice">--</b></div>
+<div class="row"><span class="muted">Stake</span><b id="stake">--</b></div>
+<div class="row"><span class="muted">Unrealized P/L</span><b id="unrealized">--</b></div>
+<div class="row"><span class="muted">Time remaining</span><b id="countdown">--</b></div>
+<p class="muted" id="paper">Waiting for signal.</p>
 </div>
+
+<div class="card">
+<h3>Paper Account</h3>
+<div class="row"><span class="muted">Starting balance</span><b>$100.00</b></div>
+<div class="row"><span class="muted">Current balance</span><b id="balance">$100.00</b></div>
+<div class="row"><span class="muted">Minimum stake</span><b>$4.00</b></div>
+<div class="row"><span class="muted">Maximum stake</span><b>$10.00</b></div>
+<div class="row"><span class="muted">Completed trades</span><b id="trades">0</b></div>
+<div class="row"><span class="muted">Wins / Losses</span><b id="record">0 / 0</b></div>
+<div class="row"><span class="muted">Win rate</span><b id="winrate">--</b></div>
+<div class="row"><span class="muted">Net P/L</span><b id="profit">$0.00</b></div>
 </div>
+
+<div class="card">
+<h3>Trade History</h3>
+<div id="history" class="muted">No completed trades.</div>
+</div>
+
+<button onclick="location.reload()">Reconnect / Refresh</button>
+
+<p class="small">
+Paper trading only. BTC spot-price simulation, not actual Polymarket
+contract execution or payouts. No real orders or wallet connection.
+</p>
 
 <script>
-const REST="https://api.binance.com/api/v3/klines";
-const SOCKET="wss://stream.binance.com:9443/stream?streams=btcusdt@trade/btcusdt@kline_1m";
-
-let candles=[];
-let ws=null;
-let lastPrice=0;
-let lastTick=0;
-let reconnectDelay=1000;
-let reconnectTimer=null;
-let lastEvaluated="";
-let currentSignal="WAIT";
-let exchangeOffset=0;
-let socketGeneration=0;
-
 const $=id=>document.getElementById(id);
 
-function exchangeNow(){
- return Date.now()+exchangeOffset;
+const START=100;
+const MIN_STAKE=4;
+const MAX_STAKE=10;
+const SCALP_TIME=60000;
+const FIVE_TIME=300000;
+const SCALP_TP=.001;
+const SCALP_SL=.0006;
+const FIVE_TP=.002;
+const FIVE_SL=.0015;
+const KEY="btc_edge_pro_v7";
+
+let mode="scalp";
+let price=null,lastPriceAt=0;
+let ticks=[],candles=[];
+let lastCandle=null,lastScalpEntry=0,lastFiveBucket=null;
+let socket=null,reconnectTimer=null,connecting=false;
+let accounts={
+ scalp:{balance:100,wins:0,losses:0,trades:0,history:[],active:null},
+ five:{balance:100,wins:0,losses:0,trades:0,history:[],active:null}
+};
+
+function now(){return Date.now()}
+function fmt(n){return "$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify({accounts,lastScalpEntry,lastFiveBucket}))}catch(e){}
 }
 
-function fmt(n){
- return n.toLocaleString("en-US",{
-  minimumFractionDigits:2,
-  maximumFractionDigits:2
- });
-}
-
-function setConnection(ok,text){
- $("dot").className=ok?"dot live":"dot";
- $("connection").textContent=text;
-}
-
-async function syncClock(){
+function restore(){
  try{
-  const r=await fetch("https://api.binance.com/api/v3/time");
-  if(!r.ok)throw Error("Clock unavailable");
-  const d=await r.json();
-  exchangeOffset=d.serverTime-Date.now();
+  let s=JSON.parse(localStorage.getItem(KEY));
+  if(!s)return;
+  if(s.accounts)for(let k of ["scalp","five"])if(s.accounts[k])accounts[k]={...accounts[k],...s.accounts[k]};
+  if(Number.isFinite(s.lastScalpEntry))lastScalpEntry=s.lastScalpEntry;
+  if(Number.isFinite(s.lastFiveBucket))lastFiveBucket=s.lastFiveBucket;
  }catch(e){}
 }
 
-function updatePrice(p,time){
- lastPrice=Number(p);
- lastTick=Date.now();
- $("price").textContent="$"+fmt(lastPrice);
- $("tick").textContent=new Date(time||Date.now()).toLocaleTimeString();
- $("updated").textContent=new Date().toLocaleTimeString();
+function ema(v,p){
+ let k=2/(p+1),x=v[0];
+ for(let i=1;i<v.length;i++)x=v[i]*k+x*(1-k);
+ return x;
 }
 
-function normalizeKline(k){
- return {
-  t:Number(k.t),
-  o:+k.o,
-  h:+k.h,
-  l:+k.l,
-  c:+k.c,
-  v:+k.v,
-  x:!!k.x
+function rsi(v){
+ let up=0,down=0;
+ for(let i=v.length-14;i<v.length;i++){
+  let d=v[i]-v[i-1];
+  if(d>0)up+=d;else down-=d;
+ }
+ if(!down)return 100;
+ if(!up)return 0;
+ return 100-100/(1+(up/14)/(down/14));
+}
+
+function fresh(){return price!==null&&now()-lastPriceAt<5000}
+
+function setPrice(p){
+ if(!Number.isFinite(p)||p<=0)return;
+ price=p;lastPriceAt=now();
+ $("price").textContent=fmt(p);
+ $("feedAge").textContent="Last update "+new Date().toLocaleTimeString();
+ ticks.push({time:now(),price:p});
+ ticks=ticks.filter(t=>now()-t.time<90000);
+ checkExits();
+ updateActive();
+ if(mode==="scalp")analyzeScalp();
+}
+
+function setSignal(d,detail,reason){
+ $("signal").textContent=d;
+ $("signal").className="signal "+(d==="UP"?"green":d==="DOWN"?"red":"");
+ $("agreement").textContent=detail;
+ $("reason").textContent=reason;
+}
+
+function updateAccount(){
+ let a=accounts[mode],p=a.balance-START;
+ $("balance").textContent=fmt(a.balance);
+ $("trades").textContent=a.trades;
+ $("record").textContent=a.wins+" / "+a.losses;
+ $("winrate").textContent=a.trades?(a.wins/a.trades*100).toFixed(1)+"%":"--";
+ $("profit").textContent=(p>=0?"+":"")+fmt(p);
+ $("profit").className=p>=0?"green":"red";
+}
+
+function updateHistory(){
+ let el=$("history");el.replaceChildren();
+ let h=accounts[mode].history;
+ if(!h.length){el.textContent="No completed trades.";return}
+ h.slice(0,15).forEach(t=>{
+  let box=document.createElement("div");box.className="trade";
+  let title=document.createElement("b");
+  title.textContent=t.direction+" · "+t.result;
+  let detail=document.createElement("div");detail.className="muted";
+  detail.textContent="Entry "+fmt(t.entry)+" · Exit "+fmt(t.exit)+" · "+(t.pnl>=0?"+":"")+fmt(t.pnl);
+  box.append(title,detail);el.append(box);
+ });
+}
+
+function updateActive(){
+ let a=accounts[mode].active;
+ if(!a){
+  $("activeDirection").textContent="NONE";
+  $("activeDirection").className="signal";
+  ["entry","tradePrice","stake","unrealized","countdown"].forEach(id=>$(id).textContent="--");
+  return;
+ }
+ $("activeDirection").textContent=a.direction;
+ $("activeDirection").className="signal "+(a.direction==="UP"?"green":"red");
+ $("entry").textContent=fmt(a.entry);
+ $("tradePrice").textContent=price?fmt(price):"--";
+ $("stake").textContent=fmt(a.stake);
+ if(price){
+  let pnl=a.stake*(price/a.entry-1)*(a.direction==="UP"?1:-1);
+  $("unrealized").textContent=(pnl>=0?"+":"")+fmt(pnl);
+  $("unrealized").className=pnl>=0?"green":"red";
+ }
+}
+
+function openTrade(key,direction){
+ let a=accounts[key];
+ if(a.active||!fresh()||a.balance<MIN_STAKE)return;
+ let stake=Math.min(MAX_STAKE,a.balance);
+ if(stake<MIN_STAKE)return;
+
+ let duration=key==="scalp"?SCALP_TIME:FIVE_TIME;
+ a.active={
+  direction,entry:price,stake,
+  start:now(),end:now()+duration,
+  tp:key==="scalp"?SCALP_TP:FIVE_TP,
+  sl:key==="scalp"?SCALP_SL:FIVE_SL
  };
+ if(key===mode){
+  $("paper").textContent="Opened "+direction+" at "+fmt(price);
+  updateActive();
+ }
+ save();
 }
 
-function storeCandle(c){
- const i=candles.findIndex(x=>x.t===c.t);
- if(i>=0)candles[i]=c;
- else candles.push(c);
+function finishTrade(key,reason){
+ let a=accounts[key],t=a.active;
+ if(!t||!fresh())return;
 
- candles.sort((a,b)=>a.t-b.t);
- if(candles.length>600)candles=candles.slice(-600);
+ let change=(price/t.entry-1)*(t.direction==="UP"?1:-1);
+ let pnl=t.stake*change;
+ a.balance+=pnl;a.trades++;
+ if(pnl>0)a.wins++;else a.losses++;
+ a.history.unshift({
+  direction:t.direction,
+  result:(pnl>0?"WIN":pnl<0?"LOSS":"BREAKEVEN")+" · "+reason,
+  entry:t.entry,exit:price,pnl
+ });
+ a.history=a.history.slice(0,50);
+ a.active=null;
+
+ if(key===mode){
+  $("paper").textContent="Closed "+t.direction+" · "+reason+" · "+(pnl>=0?"+":"")+fmt(pnl);
+  updateAccount();updateHistory();updateActive();
+ }
+ save();
 }
 
-async function loadHistory(){
- const r=await fetch(REST+
- "?symbol=BTCUSDT&interval=1m&limit=500",
- {cache:"no-store"});
+function checkExits(){
+ if(!fresh())return;
+ for(let key of ["scalp","five"]){
+  let t=accounts[key].active;
+  if(!t)continue;
+  let change=(price/t.entry-1)*(t.direction==="UP"?1:-1);
+  if(change>=t.tp)finishTrade(key,"Take profit");
+  else if(change<=-t.sl)finishTrade(key,"Stop loss");
+  else if(now()>=t.end)finishTrade(key,"Time expired");
+ }
+}
 
- if(!r.ok)throw Error("History request failed");
+function analyzeScalp(){
+ let recent=ticks.filter(t=>now()-t.time<=15000);
+ let older=ticks.filter(t=>now()-t.time>=45000&&now()-t.time<=75000);
+ if(recent.length<3||older.length<2){
+  if(mode==="scalp")setSignal("WAIT","Collecting live samples","Waiting for enough genuine price updates.");
+  return;
+ }
+ let m1=(price/recent[0].price-1)*100;
+ let m2=(price/older[0].price-1)*100;
+ $("micro").textContent=m1.toFixed(4)+"%";
+ $("minuteMomentum").textContent=m2.toFixed(4)+"%";
+ let d=m1>.025&&m2>.035?"UP":m1<-.025&&m2<-.035?"DOWN":"NO TRADE";
+ if(mode==="scalp"){
+  setSignal(d,d==="NO TRADE"?"Momentum not aligned":"Short-term momentum confirmed",
+   "Scalping requires 15-second and 60-second momentum agreement.");
+ }
+ if(d!=="NO TRADE"&&d!=="WAIT"&&!accounts.scalp.active&&
+    now()-lastScalpEntry>=30000&&fresh()){
+  openTrade("scalp",d);lastScalpEntry=now();save();
+ }
+}
 
- const data=await r.json();
+function analyzeFive(allowEntry=true){
+ let c=candles.filter(x=>x.closed);
+ if(c.length<40)return;
+ let v=c.map(x=>x.close),last=c[c.length-1],prev=c[c.length-6];
+ let mom=(last.close/prev.close-1)*100;
+ let fast=ema(v.slice(-30),9),slow=ema(v.slice(-40),21),strength=rsi(v);
+ $("momentum").textContent=mom.toFixed(3)+"%";
+ $("rsi").textContent=strength.toFixed(1);
+ $("trend").textContent=fast>slow?"BULLISH":"BEARISH";
+ let score=(fast>slow?1:fast<slow?-1:0)+
+  (mom>.035?1:mom<-.035?-1:0)+
+  (strength>51&&strength<70?1:strength<49&&strength>30?-1:0);
+ let d=score===3?"UP":score===-3?"DOWN":"NO TRADE";
+ if(mode==="five")setSignal(d,Math.abs(score)+"/3 agreement",
+  d==="NO TRADE"?"Waiting for indicator agreement":"Trend, momentum and RSI agree.");
+ if(allowEntry&&last.time!==lastCandle){
+  lastCandle=last.time;
+  let bucket=Math.floor(now()/300000);
+  if(d!=="NO TRADE"&&!accounts.five.active&&bucket!==lastFiveBucket&&fresh()){
+   openTrade("five",d);lastFiveBucket=bucket;save();
+  }
+ }
+}
 
- candles=data.map(k=>({
-  t:+k[0],o:+k[1],h:+k[2],
-  l:+k[3],c:+k[4],v:+k[5],
-  x:+k[6]<exchangeNow()
- }));
+async function loadCandles(){
+ try{
+  let r=await fetch("https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100",{cache:"no-store"});
+  if(!r.ok)throw Error();
+  let data=await r.json();
+  candles=data.map(x=>({time:x[0],close:+x[4],volume:+x[5],closed:true}));
+  if(candles.length&&now()<candles[candles.length-1].time+60000)candles[candles.length-1].closed=false;
+  if(lastCandle===null){
+   let c=candles.filter(x=>x.closed);
+   if(c.length)lastCandle=c[c.length-1].time;
+  }
+  analyzeFive(false);
+ }catch(e){}
+}
 
- $("candles").textContent=candles.length;
- evaluate();
+async function poll(){
+ try{
+  let r=await fetch("https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT",{cache:"no-store"});
+  if(!r.ok)throw Error();
+  let d=await r.json();setPrice(+d.price);
+  if(!socket||socket.readyState!==WebSocket.OPEN)
+   $("connection").textContent="BACKUP · REST price polling";
+ }catch(e){
+  if(!fresh())$("connection").textContent="STALE · Entries paused";
+ }
 }
 
 function connect(){
- clearTimeout(reconnectTimer);
- const generation=++socketGeneration;
-
  try{
-  if(ws)ws.close();
-  ws=new WebSocket(SOCKET);
+  socket=new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+  socket.onopen=()=>{
+   $("connection").textContent="LIVE · Binance WebSocket";
+   $("connection").className="green";
+  };
+  socket.onmessage=e=>{
+   let d=JSON.parse(e.data);setPrice(+d.p);
+  };
+  socket.onerror=()=>{
+   $("connection").textContent="WebSocket issue · Backup active";
+  };
+  socket.onclose=()=>{
+   $("connection").textContent="Disconnected · Backup active";
+   clearTimeout(reconnectTimer);
+   reconnectTimer=setTimeout(connect,5000);
+  };
  }catch(e){
-  scheduleReconnect();
-  return;
- }
-
- ws.onopen=()=>{
-  if(generation!==socketGeneration)return;
-  reconnectDelay=1000;
-  setConnection(true,"LIVE");
- };
-
- ws.onmessage=event=>{
-  if(generation!==socketGeneration)return;
-
-  try{
-   const msg=JSON.parse(event.data);
-   const d=msg.data;
-
-   if(msg.stream==="btcusdt@trade"){
-    updatePrice(d.p,d.T);
-   }
-
-   if(msg.stream==="btcusdt@kline_1m"){
-    const c=normalizeKline(d.k);
-    storeCandle(c);
-
-    if(c.x){
-     $("candles").textContent=candles.length;
-     evaluate();
-    }
-   }
-  }catch(e){}
- };
-
- ws.onerror=()=>{
-  setConnection(false,"FEED ERROR");
- };
-
- ws.onclose=()=>{
-  if(generation!==socketGeneration)return;
-  setConnection(false,"RECONNECTING");
-  scheduleReconnect();
- };
-}
-
-function scheduleReconnect(){
- clearTimeout(reconnectTimer);
- reconnectTimer=setTimeout(()=>{
-  reconnect();
- },reconnectDelay);
- reconnectDelay=Math.min(reconnectDelay*2,30000);
-}
-
-async function reconnect(){
- socketGeneration++;
- if(ws){
-  const old=ws;
-  ws=null;
-  old.onclose=null;
-  old.close();
- }
-
- setConnection(false,"CONNECTING");
-
- try{
-  await syncClock();
-  await loadHistory();
- }catch(e){
-  console.log(e);
- }
-
- connect();
-}
-
-function aggregate5m(){
- const groups=new Map();
-
- candles.filter(c=>c.x).forEach(c=>{
-  const t=Math.floor(c.t/300000)*300000;
-  if(!groups.has(t))groups.set(t,[]);
-  groups.get(t).push(c);
- });
-
- const result=[];
-
- for(const [t,g] of groups){
-  g.sort((a,b)=>a.t-b.t);
-
-  if(g.length!==5)continue;
-
-  let complete=true;
-  for(let i=0;i<5;i++){
-   if(g[i].t!==t+i*60000)complete=false;
-  }
-  if(!complete)continue;
-
-  result.push({
-   t,
-   o:g[0].o,
-   h:Math.max(...g.map(x=>x.h)),
-   l:Math.min(...g.map(x=>x.l)),
-   c:g[4].c,
-   v:g.reduce((s,x)=>s+x.v,0)
-  });
- }
-
- return result;
-}
-
-function ema(values,period){
- if(values.length<period)return [];
- const out=[];
- let current=values.slice(0,period)
-  .reduce((a,b)=>a+b,0)/period;
- out[period-1]=current;
- const alpha=2/(period+1);
-
- for(let i=period;i<values.length;i++){
-  current=values[i]*alpha+current*(1-alpha);
-  out[i]=current;
- }
- return out;
-}
-
-function rsi(values,period=14){
- if(values.length<=period)return null;
-
- let gains=0,losses=0;
-
- for(let i=1;i<=period;i++){
-  const diff=values[i]-values[i-1];
-  if(diff>0)gains+=diff;
-  else losses-=diff;
- }
-
- let avgGain=gains/period;
- let avgLoss=losses/period;
-
- for(let i=period+1;i<values.length;i++){
-  const diff=values[i]-values[i-1];
-  avgGain=(avgGain*(period-1)+Math.max(diff,0))/period;
-  avgLoss=(avgLoss*(period-1)+Math.max(-diff,0))/period;
- }
-
- if(avgLoss===0)return 100;
- return 100-(100/(1+avgGain/avgLoss));
-}
-
-function macd(values){
- const a=ema(values,12);
- const b=ema(values,26);
- const line=values.map((_,i)=>
-  a[i]!==undefined&&b[i]!==undefined?a[i]-b[i]:null
- );
- const valid=line.filter(x=>x!==null);
- const sig=ema(valid,9);
-
- if(!valid.length||!sig.length)return null;
-
- return valid[valid.length-1]-sig[sig.length-1];
-}
-
-function volumeRatio(bars){
- if(bars.length<21)return null;
- const last=bars[bars.length-1].v;
- const prev=bars.slice(-21,-1);
- const avg=prev.reduce((s,x)=>s+x.v,0)/20;
- return avg>0?last/avg:null;
-}
-
-function evaluate(){
- const bars=aggregate5m();
- if(bars.length<35){
-  $("reason").textContent="Building candle history...";
-  return;
- }
-
- const closes=bars.map(x=>x.c);
- const fast=ema(closes,9);
- const slow=ema(closes,21);
- const i=bars.length-1;
-
- const e9=fast[i],e21=slow[i];
- const r=rsi(closes,14);
- const m=macd(closes);
- const vr=volumeRatio(bars);
-
- if(r===null||m===null||vr===null||
- !Number.isFinite(e9)||!Number.isFinite(e21)){
-  $("reason").textContent="Insufficient indicator data";
-  return;
- }
-
- const upTrend=e9>e21;
- const downTrend=e9<e21;
- const upPrice=closes[i]>e9;
- const downPrice=closes[i]<e9;
- const upRSI=r>=52&&r<=70;
- const downRSI=r<=48&&r>=30;
- const upMACD=m>0;
- const downMACD=m<0;
-
- const mins=candles.filter(c=>c.x);
- const momentum=mins.length>=4?
-  (mins[mins.length-1].c/mins[mins.length-4].c-1)*100:0;
-
- const upMomentum=momentum>0;
- const downMomentum=momentum<0;
- const volumeConfirmed=vr>=1.05;
-
- const upChecks=[
-  upTrend,upPrice,upRSI,upMACD,upMomentum,
-  volumeConfirmed
- ];
-
- const downChecks=[
-  downTrend,downPrice,downRSI,downMACD,downMomentum,
-  volumeConfirmed
- ];
-
- const bull=upChecks.filter(Boolean).length;
- const bear=downChecks.filter(Boolean).length;
-
- $("rsi").textContent=r.toFixed(1);
- $("macd").textContent=m.toFixed(3);
- $("volume").textContent=vr.toFixed(2)+"x";
- $("ema").textContent=upTrend?"BULLISH":downTrend?"BEARISH":"FLAT";
- $("momentum").textContent=(momentum>=0?"+":"")+
- momentum.toFixed(3)+"%";
-
- $("bullBar").style.width=(bull/6*100)+"%";
- $("bearBar").style.width=(bear/6*100)+"%";
-
- $("checks").innerHTML=[
-  ["EMA trend",upTrend?"Bullish":downTrend?"Bearish":"Neutral"],
-  ["Price vs EMA",upPrice?"Above":downPrice?"Below":"Neutral"],
-  ["RSI",upRSI?"Bullish":downRSI?"Bearish":"Neutral"],
-  ["MACD",upMACD?"Positive":downMACD?"Negative":"Neutral"],
-  ["1m momentum",upMomentum?"Positive":downMomentum?"Negative":"Flat"],
-  ["Volume",volumeConfirmed?"Confirmed":"Below threshold"]
- ].map(x=>"<li>"+x[0]+": "+x[1]+"</li>").join("");
-
- let next="WAIT";
- let explanation="Insufficient agreement";
-
- if(bull>=4&&upTrend&&upMACD&&upRSI){
-  next="UP";
-  explanation="Bullish conditions confirmed";
- }else if(bear>=4&&downTrend&&downMACD&&downRSI){
-  next="DOWN";
-  explanation="Bearish conditions confirmed";
- }
-
- const barStart=bars[i].t;
- const signalKey=String(barStart);
-
- if(signalKey!==lastEvaluated){
-  lastEvaluated=signalKey;
-  currentSignal=next;
- }
-
- // Keep the last completed 5-minute candle's signal
- // locked until the next completed 5-minute candle.
-
- const display=currentSignal;
- $("signal").textContent=display;
- $("signal").className=display==="UP"?"up":
-  display==="DOWN"?"down":"wait";
-
- $("signalBox").style.border=
-  display==="UP"?"1px solid #20df91":
-  display==="DOWN"?"1px solid #ff586d":
-  "1px solid #243148";
-
- $("reason").textContent=next===display?
-  explanation:"Previous signal held until next candle closes";
-
- $("score").textContent=
-  Math.max(bull,bear)+"/6";
-
- $("updated").textContent=new Date().toLocaleTimeString();
-}
-
-function updateTimer(){
- const now=exchangeNow();
- const remaining=300000-(now%300000);
- const seconds=Math.floor(remaining/1000);
- $("timer").textContent=
-  Math.floor(seconds/60).toString().padStart(2,"0")+
-  ":"+(seconds%60).toString().padStart(2,"0");
-
- if(lastTick&&Date.now()-lastTick>15000){
-  setConnection(false,"STALE FEED");
+  clearTimeout(reconnectTimer);
+  reconnectTimer=setTimeout(connect,5000);
  }
 }
 
-setInterval(updateTimer,1000);
+function updateClock(){
+ checkExits();
+ let a=accounts[mode].active;
+ if(!a){$("countdown").textContent="--";return}
+ let sec=Math.max(0,Math.ceil((a.end-now())/1000));
+ $("countdown").textContent=Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0");
+}
+
+$("mode").addEventListener("change",()=>{
+ mode=$("mode").value;
+ $("description").textContent=mode==="scalp"?
+  "Short-term momentum · 60-second maximum hold.":
+  "EMA, RSI and momentum · 5-minute holding period.";
+ $("micro").parentElement.style.display=mode==="scalp"?"flex":"none";
+ $("minuteMomentum").parentElement.style.display=mode==="scalp"?"flex":"none";
+ $("momentum").parentElement.style.display=mode==="five"?"flex":"none";
+ $("rsi").parentElement.style.display=mode==="five"?"flex":"none";
+ $("trend").parentElement.style.display=mode==="five"?"flex":"none";
+ updateAccount();updateHistory();updateActive();
+ let d=mode==="scalp"?"WAIT":signalsFive();
+ setSignal(d,"Selected mode","Waiting for a fresh signal.");
+});
+
+function signalsFive(){
+ let c=candles.filter(x=>x.closed);
+ if(c.length<40)return "WAIT";
+ let v=c.map(x=>x.close),last=c[c.length-1],prev=c[c.length-6];
+ let m=(last.close/prev.close-1)*100,f=ema(v.slice(-30),9),s=ema(v.slice(-40),21),r=rsi(v);
+ let score=(f>s?1:f<s?-1:0)+(m>.035?1:m<-.035?-1:0)+(r>51&&r<70?1:r<49&&r>30?-1:0);
+ return score===3?"UP":score===-3?"DOWN":"NO TRADE";
+}
+
+restore();
+updateAccount();
+updateHistory();
+updateActive();
+if(accounts[mode].active)$("paper").textContent="Restored saved paper trade.";
+
+connect();
+loadCandles();
+poll();
+setInterval(poll,2000);
+setInterval(loadCandles,15000);
+setInterval(updateClock,250);
+
 setInterval(()=>{
- if(!lastTick||Date.now()-lastTick>15000){
-  reconnect();
+ if(!lastPriceAt)return;
+ let age=Math.floor((now()-lastPriceAt)/1000);
+ $("feedAge").textContent="Last update "+age+" seconds ago";
+ if(age>10){
+  $("connection").textContent="STALE · New entries paused";
+  $("connection").className="red";
  }
-},10000);
+},1000);
 
-reconnect();
 </script>
 </body>
 </html>
