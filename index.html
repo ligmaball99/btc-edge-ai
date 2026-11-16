@@ -39,18 +39,18 @@ label{display:block;margin-top:12px;color:var(--mut);font-size:13px}
 </style>
 </head>
 <body>
-<h1>₿ BTC EDGE AI</h1>
+<h1>&#8383; BTC EDGE AI</h1>
 <div class="sub">5-Minute Bitcoin Prediction Dashboard</div>
 
 <div class="card">
   <div class="lbl">Live Bitcoin Price</div>
-  <div class="price" id="price">–</div>
-  <div class="sub" id="conn">Loading market data…</div>
+  <div class="price" id="price">&#8211;</div>
+  <div class="sub" id="conn">Loading market data&#8230;</div>
 </div>
 
 <div class="card">
   <div class="lbl">AI Directional Signal</div>
-  <div class="dir" id="dir">–</div>
+  <div class="dir" id="dir">&#8211;</div>
   <div class="agree" id="agree"></div>
   <div class="sub" id="why"></div>
 </div>
@@ -59,12 +59,12 @@ label{display:block;margin-top:12px;color:var(--mut);font-size:13px}
 
 <div class="card">
   <h2>Current 5-minute round</h2>
-  <div class="row"><span>Time left</span><strong id="left">–</strong></div>
-  <div class="row"><span>Round opened at</span><strong id="open">–</strong></div>
-  <div class="row"><span>Moved since open</span><strong id="drift">–</strong></div>
+  <div class="row"><span>Time left</span><strong id="left">&#8211;</strong></div>
+  <div class="row"><span>Round opened at</span><strong id="open">&#8211;</strong></div>
+  <div class="row"><span>Moved since open</span><strong id="drift">&#8211;</strong></div>
   <div class="grid" style="margin-top:12px">
-    <div class="odds"><small>UP (buy price)</small><b id="upAsk">–</b><small id="upBid"></small></div>
-    <div class="odds"><small>DOWN (buy price)</small><b id="dnAsk">–</b><small id="dnBid"></small></div>
+    <div class="odds"><small>UP (buy price)</small><b id="upAsk">&#8211;</b><small id="upBid"></small></div>
+    <div class="odds"><small>DOWN (buy price)</small><b id="dnAsk">&#8211;</b><small id="dnBid"></small></div>
   </div>
   <div class="small" id="src" style="margin-top:10px"></div>
 </div>
@@ -72,8 +72,8 @@ label{display:block;margin-top:12px;color:var(--mut);font-size:13px}
 <div class="card">
   <h2>Paper account</h2>
   <div class="big" id="bal">$100.00</div>
-  <div class="row"><span>Profit / loss</span><strong id="pnl">–</strong></div>
-  <div class="row"><span>Trades · win rate</span><strong id="wr">–</strong></div>
+  <div class="row"><span>Profit / loss</span><strong id="pnl">&#8211;</strong></div>
+  <div class="row"><span>Trades &#183; win rate</span><strong id="wr">&#8211;</strong></div>
   <div class="row"><span>Open position</span><strong id="pos">None</strong></div>
   <div class="grid">
     <button class="up" id="bUp">Buy UP</button>
@@ -92,7 +92,252 @@ label{display:block;margin-top:12px;color:var(--mut);font-size:13px}
   </select>
   <label>Auto-trade (paper money only)</label>
   <select id="auto">
-    <option value="off">Off – watch only</option>
+    <option value="off">Off &#8211; watch only</option>
     <option value="on">On</option>
   </select>
-  <label>Manual trade size ($4 minimum)
+  <label>Manual trade size ($4 minimum)</label>
+  <input id="stake" type="number" min="4" step="1" value="4">
+  <label>Polymarket UP market slug (optional)</label>
+  <input id="upSlug" placeholder="e.g. btc-updown-5m-{ts}" autocapitalize="off" autocorrect="off">
+  <label>Polymarket DOWN market slug (optional)</label>
+  <input id="dnSlug" placeholder="leave blank to derive from UP" autocapitalize="off" autocorrect="off">
+  <div class="small" style="margin-top:8px">Use {ts} where the round start time (unix seconds) goes. With no slug set, odds are simulated from BTC price.</div>
+  <button class="sec" id="bSave">Save settings</button>
+</div>
+
+<div class="card">
+  <h2>Trade history</h2>
+  <div id="hist" class="small">No trades yet.</div>
+</div>
+
+<div class="small">Paper trading only. No real orders are placed. Indicator signals are not win probabilities, and past results do not predict future results.</div>
+
+<script>
+window.onerror=function(m,u,l){var e=document.getElementById("conn");if(e)e.textContent="Error: "+m+" (line "+l+")";};
+window.addEventListener("unhandledrejection",function(ev){var e=document.getElementById("conn");if(e)e.textContent="Error: "+(ev.reason&&ev.reason.message||ev.reason);});
+document.getElementById("conn").textContent="Starting...";
+
+(function(){
+"use strict";
+/* ---------- config ---------- */
+var CFG={start:100,minTrade:4,fee:0.01,
+  scalpPct:0.05,swingPct:0.10,maxPct:0.25,
+  scalpMaxAsk:0.70,swingMaxAsk:0.72,
+  tp:0.10,sl:0.12,entryFrom:5,entryTo:180,
+  hosts:["https://api.binance.us","https://api.binance.com"],
+  poly:"https://gateway.polymarket.us",
+  tick:3000};
+
+/* ---------- state ---------- */
+var S={bal:CFG.start,pos:null,trades:[],lastRound:0,set:{mode:"both",auto:"off",upSlug:"",dnSlug:"",stake:4}};
+function load(){try{var r=localStorage.getItem("btcedge_v2");if(r){var o=JSON.parse(r);for(var k in o)S[k]=o[k];}}catch(e){}}
+function save(){try{localStorage.setItem("btcedge_v2",JSON.stringify(S));}catch(e){}}
+load();
+
+var host=0,K=[],price=0,odds=null,oddsSrc="",polyErr="",sig=null;
+
+/* ---------- helpers ---------- */
+function $(id){return document.getElementById(id);}
+function usd(n){return (n<0?"-":"")+"$"+Math.abs(n).toFixed(2);}
+function cents(p){return p==null?"\u2013":Math.round(p*100)+"\u00a2";}
+function fetchJSON(url){
+  var c=new AbortController();var t=setTimeout(function(){c.abort();},6000);
+  return fetch(url,{signal:c.signal}).then(function(r){clearTimeout(t);if(!r.ok)throw new Error("HTTP "+r.status);return r.json();});
+}
+function ema(a,n){var k=2/(n+1),e=a[0];for(var i=1;i<a.length;i++)e=a[i]*k+e*(1-k);return e;}
+function rsi(a,n){
+  if(a.length<=n)return 50;var g=0,l=0,i;
+  for(i=1;i<=n;i++){var d=a[i]-a[i-1];if(d>=0)g+=d;else l-=d;}
+  g/=n;l/=n;
+  for(i=n+1;i<a.length;i++){var d2=a[i]-a[i-1];g=(g*(n-1)+(d2>0?d2:0))/n;l=(l*(n-1)+(d2<0?-d2:0))/n;}
+  return l===0?100:100-100/(1+g/l);
+}
+function sd(a){var m=a.reduce(function(s,x){return s+x;},0)/a.length;return Math.sqrt(a.reduce(function(s,x){return s+(x-m)*(x-m);},0)/a.length);}
+function ncdf(z){var t=1/(1+0.2316419*Math.abs(z));var d=0.3989423*Math.exp(-z*z/2);
+  var p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
+function num(x){if(x==null)return null;if(typeof x==="object")x=(x.value!=null?x.value:(x.price!=null?x.price:x.amount));
+  var v=parseFloat(x);if(isNaN(v))return null;return v>1?v/100:v;}
+
+/* ---------- data ---------- */
+function getKlines(){
+  var url=CFG.hosts[host]+"/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=300";
+  return fetchJSON(url).then(function(r){
+    K=r.map(function(x){return{t:x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5]};});
+    price=K[K.length-1].c;
+  }).catch(function(e){host=(host+1)%CFG.hosts.length;throw e;});
+}
+
+/* ---------- signals ---------- */
+function signals(){
+  var cl=K.map(function(k){return k.c;}),last=K[K.length-1],n=cl.length;
+  var e9=ema(cl.slice(-60),9),e21=ema(cl.slice(-60),21);
+  var e50=ema(cl.slice(-150),50),e200=ema(cl,200);
+  var r=rsi(cl.slice(-80),14);
+  var mom=(cl[n-1]/cl[n-4]-1)*100;
+  var drift=(price/last.o-1)*100;
+  var vols=K.slice(-21,-1).map(function(k){return k.v;});
+  var vavg=vols.reduce(function(s,x){return s+x;},0)/vols.length;
+  var vr=K[n-2].v/vavg;
+  var v={ema:e9>e21?1:-1,rsi:r>55?1:(r<45?-1:0),mom:mom>0.03?1:(mom<-0.03?-1:0),drift:drift>0.01?1:(drift<-0.01?-1:0)};
+  var up=0,dn=0;for(var k in v){if(v[k]>0)up++;if(v[k]<0)dn++;}
+  var dir=up>=3?"UP":(dn>=3?"DOWN":null);
+  var agree=dir==="UP"?up:(dir==="DOWN"?dn:Math.max(up,dn));
+  var trend=e50>e200?"UP":"DOWN";
+  return{v:v,up:up,dn:dn,dir:dir,agree:agree,rsi:r,mom:mom,drift:drift,vr:vr,volOK:vr>=0.7,trend:trend};
+}
+
+/* ---------- odds ---------- */
+function simOdds(){
+  var last=K[K.length-1],rets=[];
+  for(var i=K.length-60;i<K.length;i++)rets.push(Math.log(K[i].c/K[i-1].c));
+  var s5=Math.max(sd(rets),0.0003);
+  var left=Math.max(5,(last.t+300000-Date.now())/1000);
+  var z=Math.log(price/last.o)/(s5*Math.sqrt(left/300));
+  var p=Math.min(0.97,Math.max(0.03,ncdf(z)));
+  return{upAsk:Math.min(0.99,p+0.015),upBid:Math.max(0.01,p-0.015)};
+}
+function slugFor(pat,rs){return pat?pat.replace(/\{ts\}/g,String(Math.floor(rs/1000))):"";}
+function bbo(slug){
+  return fetchJSON(CFG.poly+"/v1/markets/"+encodeURIComponent(slug)+"/bbo").then(function(r){
+    var m=r.marketData||r;var b=num(m.bestBid),a=num(m.bestAsk);
+    if(b==null||a==null)throw new Error("no quote");return{bid:b,ask:a};
+  });
+}
+function getOdds(){
+  var rs=K[K.length-1].t,sim=simOdds();
+  var us=slugFor(S.set.upSlug,rs),ds=slugFor(S.set.dnSlug,rs);
+  function finish(u,d){
+    var o={};
+    if(u&&d){o.upAsk=u.ask;o.upBid=u.bid;o.dnAsk=d.ask;o.dnBid=d.bid;}
+    else if(u){o.upAsk=u.ask;o.upBid=u.bid;o.dnAsk=1-u.bid;o.dnBid=1-u.ask;}
+    else if(d){o.dnAsk=d.ask;o.dnBid=d.bid;o.upAsk=1-d.bid;o.upBid=1-d.ask;}
+    odds=o;oddsSrc="Polymarket US (live)";polyErr="";
+  }
+  function fallback(e){
+    odds={upAsk:sim.upAsk,upBid:sim.upBid,dnAsk:1-sim.upBid,dnBid:1-sim.upAsk};
+    oddsSrc="Simulated odds from BTC price"+(e?" \u2013 Polymarket: "+e.message:"");polyErr=e?e.message:"";
+  }
+  if(!us&&!ds){fallback(null);return Promise.resolve();}
+  return Promise.all([us?bbo(us).catch(function(){return null;}):null,ds?bbo(ds).catch(function(){return null;}):null])
+    .then(function(r){if(!r[0]&&!r[1])throw new Error("market not found or blocked");finish(r[0],r[1]);})
+    .catch(fallback);
+}
+
+/* ---------- trading ---------- */
+function openPos(side,mode,stake){
+  var ask=side==="UP"?odds.upAsk:odds.dnAsk;
+  stake=Math.min(Math.round(stake*100)/100,S.bal);
+  if(stake<CFG.minTrade||ask<=0.01||ask>=0.99)return false;
+  var rs=K[K.length-1].t;
+  S.bal=Math.round((S.bal-stake)*100)/100;
+  S.pos={side:side,mode:mode,stake:stake,entry:ask,shares:(stake*(1-CFG.fee))/ask,rs:rs,open:K[K.length-1].o,at:Date.now()};
+  S.lastRound=rs;save();return true;
+}
+function closePos(exitPx,type,won){
+  var p=S.pos,proceeds=type==="resolved"?(won?p.shares:0):p.shares*exitPx;
+  proceeds=Math.round(proceeds*100)/100;
+  S.bal=Math.round((S.bal+proceeds)*100)/100;
+  S.trades.unshift({at:p.at,mode:p.mode,side:p.side,stake:p.stake,entry:p.entry,type:type,pnl:Math.round((proceeds-p.stake)*100)/100});
+  S.trades=S.trades.slice(0,200);S.pos=null;save();
+}
+function manage(){
+  var last=K[K.length-1];
+  if(S.pos&&S.pos.rs<last.t){
+    var c=null;for(var i=K.length-1;i>=0;i--){if(K[i].t===S.pos.rs){c=K[i];break;}}
+    var win;if(c){win=S.pos.side==="UP"?c.c>=c.o:c.c<c.o;}else{win=S.pos.side==="UP"?price>=S.pos.open:price<S.pos.open;}
+    closePos(0,"resolved",win);return;
+  }
+  var secs=(Date.now()-last.t)/1000,left=300-secs;
+  if(S.pos&&S.pos.mode==="scalp"&&left>20){
+    var bid=S.pos.side==="UP"?odds.upBid:odds.dnBid;
+    if(bid>=S.pos.entry+CFG.tp)closePos(bid,"take profit");
+    else if(bid<=S.pos.entry-CFG.sl)closePos(bid,"stop loss");
+  }
+  if(S.pos||S.set.auto!=="on"||!sig.dir||S.lastRound===last.t)return;
+  if(secs<CFG.entryFrom||secs>CFG.entryTo||S.bal<CFG.minTrade)return;
+  var m=S.set.mode,mode=null;
+  if(m!=="scalp"&&sig.agree===4&&sig.trend===sig.dir&&sig.volOK)mode="swing";
+  else if(m!=="swing"&&sig.volOK)mode="scalp";
+  if(!mode)return;
+  var ask=sig.dir==="UP"?odds.upAsk:odds.dnAsk;
+  if(ask>(mode==="swing"?CFG.swingMaxAsk:CFG.scalpMaxAsk))return;
+  var pct=mode==="swing"?CFG.swingPct:CFG.scalpPct;
+  var stake=Math.min(Math.max(CFG.minTrade,S.bal*pct),S.bal*CFG.maxPct>CFG.minTrade?S.bal*CFG.maxPct:CFG.minTrade);
+  openPos(sig.dir,mode,stake);
+}
+
+/* ---------- render ---------- */
+function render(){
+  var last=K[K.length-1],left=Math.max(0,300-(Date.now()-last.t)/1000);
+  $("price").textContent="$"+price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  var s=sig,col=s.dir==="UP"?"green":(s.dir==="DOWN"?"red":"amb");
+  $("dir").innerHTML='<span class="'+col+'">'+(s.dir||"NO TRADE")+'</span>';
+  $("agree").textContent="Indicator agreement: "+Math.round(s.agree/4*100)+"%";
+  $("why").textContent=s.dir?"Indicators align toward "+s.dir+". This is not a verified win probability.":"Indicators are mixed, so the bot waits. This is not a verified win probability.";
+  function t(x,a,b){return x>0?'<span class="green">'+a+'</span>':x<0?'<span class="red">'+b+'</span>':'<span class="amb">NEUTRAL</span>';}
+  $("votes").innerHTML=
+    '<div class="row"><span>5-minute momentum</span><strong>'+(s.mom>=0?"+":"")+s.mom.toFixed(3)+'%</strong></div>'+
+    '<div class="row"><span>RSI</span><strong>'+s.rsi.toFixed(1)+'</strong></div>'+
+    '<div class="row"><span>EMA trend</span><strong>'+t(s.v.ema,"BULLISH","BEARISH")+'</strong></div>'+
+    '<div class="row"><span>Round drift</span><strong>'+t(s.v.drift,"UP","DOWN")+'</strong></div>'+
+    '<div class="row"><span>Volume</span><strong>'+s.vr.toFixed(2)+'x average</strong></div>'+
+    '<div class="row"><span>Bigger trend (EMA 50/200)</span><strong>'+t(s.trend==="UP"?1:-1,"UP","DOWN")+'</strong></div>';
+  $("left").textContent=Math.floor(left/60)+":"+("0"+Math.floor(left%60)).slice(-2);
+  $("open").textContent="$"+last.o.toFixed(2);
+  var dr=(price/last.o-1)*100;
+  $("drift").innerHTML='<span class="'+(dr>=0?"green":"red")+'">'+(dr>=0?"+":"")+dr.toFixed(3)+"%</span>";
+  if(odds){
+    $("upAsk").textContent=cents(odds.upAsk);$("upBid").textContent="sell "+cents(odds.upBid);
+    $("dnAsk").textContent=cents(odds.dnAsk);$("dnBid").textContent="sell "+cents(odds.dnBid);
+  }
+  $("src").textContent=oddsSrc;
+  $("bal").textContent=usd(S.bal);
+  var pl=S.bal+(S.pos?S.pos.stake:0)-CFG.start;
+  $("pnl").innerHTML='<span class="'+(pl>=0?"green":"red")+'">'+usd(pl)+"</span>";
+  var w=S.trades.filter(function(x){return x.pnl>0;}).length;
+  $("wr").textContent=S.trades.length?S.trades.length+" \u00b7 "+Math.round(w/S.trades.length*100)+"%":"0 \u00b7 \u2013";
+  $("pos").textContent=S.pos?S.pos.mode+" "+S.pos.side+" "+usd(S.pos.stake)+" @ "+cents(S.pos.entry):"None";
+  $("hist").innerHTML=S.trades.length?S.trades.slice(0,25).map(function(x){
+    var d=new Date(x.at);
+    return '<div class="hist"><span class="pill">'+x.mode+'</span> '+x.side+" "+usd(x.stake)+" @ "+cents(x.entry)+
+      ' <strong class="'+(x.pnl>=0?"green":"red")+'" style="float:right">'+(x.pnl>=0?"+":"")+usd(x.pnl)+'</strong><br><span class="small">'+
+      d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+" \u00b7 "+x.type+"</span></div>";
+  }).join(""):"No trades yet.";
+}
+
+/* ---------- loop ---------- */
+var busy=false;
+function tick(){
+  if(busy)return;busy=true;
+  getKlines().then(function(){
+    $("conn").textContent="Live \u00b7 updated "+new Date().toLocaleTimeString();
+    sig=signals();
+    return getOdds().then(function(){manage();render();});
+  }).catch(function(e){$("conn").textContent="Reconnecting\u2026 ("+e.message+")";})
+  .then(function(){busy=false;});
+}
+
+/* ---------- controls ---------- */
+$("mode").value=S.set.mode;$("auto").value=S.set.auto;$("upSlug").value=S.set.upSlug;$("dnSlug").value=S.set.dnSlug;$("stake").value=S.set.stake;
+$("bSave").onclick=function(){
+  S.set.mode=$("mode").value;S.set.auto=$("auto").value;S.set.upSlug=$("upSlug").value.trim();
+  S.set.dnSlug=$("dnSlug").value.trim();S.set.stake=Math.max(CFG.minTrade,+$("stake").value||CFG.minTrade);
+  save();tick();
+};
+function manual(side){
+  if(!K.length||!odds||S.pos)return;
+  var st=Math.max(CFG.minTrade,+$("stake").value||CFG.minTrade);
+  if(openPos(side,"manual",st))render();
+}
+$("bUp").onclick=function(){manual("UP");};
+$("bDn").onclick=function(){manual("DOWN");};
+$("bReset").onclick=function(){
+  if(confirm("Reset paper account to $100 and clear history?")){S.bal=CFG.start;S.pos=null;S.trades=[];S.lastRound=0;save();if(K.length)render();}
+};
+
+tick();setInterval(tick,CFG.tick);
+setInterval(function(){if(K.length&&sig)render();},1000);
+})();
+</script>
+</body>
+</html>
