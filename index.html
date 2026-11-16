@@ -7,41 +7,39 @@
 <title>BTC EDGE AI</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#080d16;color:#f4f7ff;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;padding:18px 14px}
-h1{font-size:28px;margin:5px 0}
-h2{font-size:21px;margin:0 0 22px}
-.sub{color:#91a1b8;font-size:14px}
+body{margin:0;padding:20px 14px;background:#080d16;color:#f4f7ff;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+h1{font-size:30px;margin:4px 0 8px}
+h2{font-size:22px;margin:0 0 22px}
+.sub{color:#95a4ba}
 .card{background:#151f30;border:1px solid #293950;border-radius:24px;padding:24px;margin:18px 0}
-.price{font-size:38px;font-weight:800;margin:12px 0}
-.signal{font-size:46px;font-weight:850;margin:14px 0}
-.green{color:#20cf78}.red{color:#ff5968}.yellow{color:#f6c65b}.muted{color:#91a1b8}
-.line{display:flex;justify-content:space-between;gap:12px;margin:18px 0;font-size:16px}
-.line span:first-child{color:#91a1b8}
+.price{font-size:42px;font-weight:850;margin:18px 0}
+.signal{font-size:48px;font-weight:850;margin:14px 0}
+.line{display:flex;justify-content:space-between;gap:12px;margin:19px 0;font-size:16px}
+.line span:first-child{color:#95a4ba}
 .line strong{text-align:right}
-select,button{width:100%;padding:15px;border-radius:13px;border:1px solid #35465e;background:#202d41;color:white;font-size:16px}
+.green{color:#25d17d}.red{color:#ff5d6c}.yellow{color:#f4c65e}
+select,button{width:100%;padding:16px;border-radius:13px;border:1px solid #35465e;background:#202d41;color:white;font-size:16px}
 button{background:#2478ed;border:0;font-weight:750;margin-top:12px}
 button.secondary{background:#29384d}
-.small{font-size:13px;color:#91a1b8;line-height:1.5}
-.history{padding:14px;background:#202c40;border-radius:13px;margin:10px 0}
-.history strong{display:block;margin-bottom:7px}
-.pill{display:inline-block;border-radius:20px;padding:6px 11px;background:#26364d;font-size:12px}
-#connection{font-size:13px}
+button:disabled{opacity:.4}
+.small{font-size:13px;color:#95a4ba;line-height:1.55}
+.history{padding:15px;background:#202c40;border-radius:13px;margin:12px 0}
+.history strong{display:block;margin-bottom:10px}
+.status{font-weight:700;margin:18px 0}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>BTC EDGE AI</h1>
-  <div class="sub">Bitcoin paper-trading signal dashboard</div>
-  <p id="connection" class="yellow">Connecting to BTC market...</p>
-</header>
+<h1>BTC EDGE AI</h1>
+<div class="sub">Bitcoin paper-trading signal dashboard</div>
+<div id="connection" class="status yellow">Connecting to BTC...</div>
 
 <div class="card">
   <div class="sub">BTC / USDT LIVE PRICE</div>
   <div class="price" id="price">Loading...</div>
   <div class="line"><span>Market signal</span><strong id="signal">WAITING</strong></div>
   <div class="line"><span>Signal strength</span><strong id="strength">--</strong></div>
-  <div class="line"><span>Last update</span><strong id="updated">--</strong></div>
+  <div class="line"><span>Price updated</span><strong id="updated">--</strong></div>
 </div>
 
 <div class="card">
@@ -54,12 +52,12 @@ button.secondary{background:#29384d}
   <div class="line"><span>Automatic paper entries</span><strong class="green">ON</strong></div>
   <div class="line"><span>Minimum stake</span><strong>$4.00</strong></div>
   <div class="line"><span>Maximum stake</span><strong>$10.00</strong></div>
-  <div class="small">The simulator enters automatically when a valid signal appears. It will not open another trade while one is active.</div>
+  <div class="small">Trades open automatically when the selected strategy produces a valid signal. Only one position can be open at a time.</div>
 </div>
 
 <div class="card">
   <h2>Active Position</h2>
-  <div class="signal" id="activeDirection">NONE</div>
+  <div id="activeDirection" class="signal">NONE</div>
   <div class="line"><span>Entry</span><strong id="entry">--</strong></div>
   <div class="line"><span>Live price</span><strong id="live">--</strong></div>
   <div class="line"><span>Stake</span><strong id="stake">--</strong></div>
@@ -95,10 +93,12 @@ button.secondary{background:#29384d}
   <div class="line"><span>Scalp stop loss</span><strong>0.06%</strong></div>
   <div class="line"><span>5-minute take profit</span><strong>0.20%</strong></div>
   <div class="line"><span>5-minute stop loss</span><strong>0.15%</strong></div>
-  <div class="small">Results are simulated using BTC price movement. Trading fees, spread, slippage, and Polymarket contract payouts are not included.</div>
+  <div class="small">Paper simulation only. P/L is based on BTC percentage price movement. Fees, spread, slippage and Polymarket contract pricing are not included.</div>
 </div>
 
 <script>
+"use strict";
+
 const START_BALANCE = 100;
 const MIN_STAKE = 4;
 const MAX_STAKE = 10;
@@ -109,160 +109,269 @@ let wins = 0;
 let losses = 0;
 let breakevens = 0;
 let completed = 0;
+
 let currentPrice = 0;
-let previousPrice = 0;
+let lastPriceUpdate = 0;
 let ticks = [];
 let candles = [];
 let activeTrade = null;
-let lastEntryTime = 0;
-let lastFiveBucket = -1;
-let tradeSocket = null;
-let candleSocket = null;
-let reconnectTimer = null;
 let history = [];
 
-const $ = id => document.getElementById(id);
-const money = n => (n >= 0 ? "+$" : "-$") + Math.abs(n).toFixed(2);
-const formatPrice = n => n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+let tradeSocket = null;
+let reconnectTimer = null;
+let priceTimer = null;
+let candleTimer = null;
+let scalpLastEntry = 0;
+let lastFiveBucket = -1;
+let lastCandleSignalTime = 0;
+let socketAttempt = 0;
 
-function setConnection(message, good) {
-  $("connection").textContent = message;
-  $("connection").className = good ? "green" : "yellow";
+const $ = id => document.getElementById(id);
+
+function money(value) {
+  return (value >= 0 ? "+$" : "-$") + Math.abs(value).toFixed(2);
 }
 
-function connectMarket() {
-  clearTimeout(reconnectTimer);
+function priceText(value) {
+  return Number(value).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
 
-  if (tradeSocket) tradeSocket.close();
-  if (candleSocket) candleSocket.close();
+function setStatus(message, type) {
+  $("connection").textContent = message;
+  $("connection").className = "status " + type;
+}
 
-  tradeSocket = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
-  candleSocket = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@kline_1m");
+function updatePrice(price, source) {
+  if (!Number.isFinite(price) || price <= 0) return;
 
-  tradeSocket.onopen = () => setConnection("Live BTC trade feed connected", true);
-  tradeSocket.onmessage = event => {
-    const data = JSON.parse(event.data);
-    updatePrice(Number(data.p), Number(data.T));
-  };
-  tradeSocket.onerror = () => setConnection("Market feed error — reconnecting", false);
-  tradeSocket.onclose = () => {
-    setConnection("Disconnected — reconnecting", false);
-    scheduleReconnect();
-  };
+  currentPrice = price;
+  lastPriceUpdate = Date.now();
 
-  candleSocket.onmessage = event => {
-    const data = JSON.parse(event.data);
-    const k = data.k;
-    if (!k || !k.x) return;
+  $("price").textContent = "$" + priceText(price);
+  $("live").textContent = "$" + priceText(price);
+  $("updated").textContent = new Date().toLocaleTimeString();
 
-    const candle = {
-      time: Number(k.t),
-      close: Number(k.c),
-      open: Number(k.o),
-      high: Number(k.h),
-      low: Number(k.l)
+  if (source === "websocket") {
+    ticks.push({price, time:Date.now()});
+    if (ticks.length > 120) ticks.shift();
+  }
+
+  updateActiveTrade();
+  updateSignal();
+}
+
+function connectSocket() {
+  if (tradeSocket &&
+      (tradeSocket.readyState === WebSocket.OPEN ||
+       tradeSocket.readyState === WebSocket.CONNECTING)) return;
+
+  try {
+    tradeSocket = new WebSocket(
+      "wss://stream.binance.com:9443/ws/btcusdt@trade"
+    );
+
+    tradeSocket.onopen = () => {
+      socketAttempt = 0;
+      setStatus("Live BTC trade feed connected", "green");
     };
 
-    const existing = candles.findIndex(c => c.time === candle.time);
-    if (existing >= 0) candles[existing] = candle;
-    else candles.push(candle);
+    tradeSocket.onmessage = event => {
+      try {
+        const data = JSON.parse(event.data);
+        updatePrice(Number(data.p), "websocket");
+      } catch (error) {}
+    };
 
-    candles = candles.slice(-150);
-    updateMarketSignal();
-  };
+    tradeSocket.onerror = () => {
+      setStatus("WebSocket unavailable — using backup feed", "yellow");
+    };
 
-  candleSocket.onclose = () => scheduleReconnect();
+    tradeSocket.onclose = () => {
+      setStatus("Disconnected — backup feed active", "yellow");
+      scheduleReconnect();
+    };
+  } catch (error) {
+    setStatus("WebSocket unavailable — using backup feed", "yellow");
+    scheduleReconnect();
+  }
 }
 
 function scheduleReconnect() {
   if (reconnectTimer) return;
+
+  socketAttempt++;
+  const delay = Math.min(30000, 3000 * socketAttempt);
+
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
-    connectMarket();
-  }, 3000);
+    connectSocket();
+  }, delay);
 }
 
-function updatePrice(price, timestamp) {
-  if (!Number.isFinite(price) || price <= 0) return;
+async function getBackupPrice() {
+  try {
+    const response = await fetch(
+      "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
+      {cache:"no-store"}
+    );
 
-  previousPrice = currentPrice || price;
-  currentPrice = price;
+    if (!response.ok) throw new Error("Price request failed");
 
-  ticks.push({price, time: timestamp || Date.now()});
-  if (ticks.length > 100) ticks.shift();
+    const data = await response.json();
 
-  $("price").textContent = "$" + formatPrice(price);
-  $("updated").textContent = new Date().toLocaleTimeString();
-  $("live").textContent = "$" + formatPrice(price);
+    if (!tradeSocket || tradeSocket.readyState !== WebSocket.OPEN) {
+      updatePrice(Number(data.price), "backup");
+      setStatus("Backup BTC price feed connected", "green");
+    }
+  } catch (error) {
+    if (!tradeSocket || tradeSocket.readyState !== WebSocket.OPEN) {
+      setStatus("Unable to reach BTC price feed", "red");
+    }
+  }
+}
 
-  updateMarketSignal();
-  updateActiveTrade();
+async function getCandles() {
+  try {
+    const response = await fetch(
+      "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100",
+      {cache:"no-store"}
+    );
+
+    if (!response.ok) throw new Error("Candle request failed");
+
+    const data = await response.json();
+
+    // Exclude the currently forming candle.
+    const completedCandles = data.slice(0, -1).map(k => ({
+      time:Number(k[0]),
+      open:Number(k[1]),
+      high:Number(k[2]),
+      low:Number(k[3]),
+      close:Number(k[4])
+    }));
+
+    candles = completedCandles;
+    updateSignal();
+  } catch (error) {
+    // Keep the last valid completed candle data.
+  }
 }
 
 function ema(values, period) {
   if (values.length < period) return null;
-  const multiplier = 2 / (period + 1);
+
   let result = values.slice(0, period).reduce((a,b) => a+b, 0) / period;
+  const multiplier = 2 / (period + 1);
+
   for (let i = period; i < values.length; i++) {
     result = (values[i] - result) * multiplier + result;
   }
+
   return result;
 }
 
-function rsi(values, period = 14) {
+function rsi(values, period) {
   if (values.length <= period) return null;
-  let gains = 0, losses = 0;
+
+  let gains = 0;
+  let losses = 0;
+
   for (let i = values.length - period; i < values.length; i++) {
-    const change = values[i] - values[i-1];
+    const change = values[i] - values[i - 1];
     if (change > 0) gains += change;
     else losses -= change;
   }
+
   if (losses === 0) return 100;
-  return 100 - (100 / (1 + gains/losses));
+  if (gains === 0) return 0;
+
+  return 100 - (100 / (1 + gains / losses));
 }
 
-function scalpSignal() {
-  if (ticks.length < 20) return {direction:"NONE", strength:0};
+function getScalpSignal() {
+  // Scalp signals require real WebSocket trade ticks.
+  if (!tradeSocket || tradeSocket.readyState !== WebSocket.OPEN) {
+    return {direction:"NONE", strength:0};
+  }
 
-  const prices = ticks.map(t => t.price);
-  const fast = ema(prices, 8);
-  const slow = ema(prices, 18);
-  const first = prices[prices.length - 10];
-  const last = prices[prices.length - 1];
+  const recent = ticks.filter(t => Date.now() - t.time <= 30000);
+
+  if (recent.length < 20) return {direction:"NONE", strength:0};
+
+  const values = recent.map(t => t.price);
+  const fast = ema(values, 8);
+  const slow = ema(values, 18);
+
+  if (fast === null || slow === null) {
+    return {direction:"NONE", strength:0};
+  }
+
+  const first = values[0];
+  const last = values[values.length - 1];
   const momentum = ((last - first) / first) * 100;
-  const direction = fast > slow && momentum > 0.005 ? "UP" :
-                    fast < slow && momentum < -0.005 ? "DOWN" : "NONE";
 
-  return {direction, strength:Math.min(100, Math.round(Math.abs(momentum)*5000))};
+  let direction = "NONE";
+
+  if (fast > slow && momentum > 0.003) direction = "UP";
+  if (fast < slow && momentum < -0.003) direction = "DOWN";
+
+  return {
+    direction,
+    strength:Math.min(100, Math.round(Math.abs(momentum) * 5000))
+  };
 }
 
-function fiveMinuteSignal() {
+function getFiveMinuteSignal() {
   if (candles.length < 25) return {direction:"NONE", strength:0};
 
   const closes = candles.map(c => c.close);
   const fast = ema(closes, 9);
   const slow = ema(closes, 21);
-  const momentum = ((closes.at(-1) - closes.at(-4)) / closes.at(-4)) * 100;
   const currentRsi = rsi(closes, 14);
 
-  const direction =
-    fast > slow && momentum > 0 && currentRsi > 50 && currentRsi < 75 ? "UP" :
-    fast < slow && momentum < 0 && currentRsi < 50 && currentRsi > 25 ? "DOWN" :
-    "NONE";
+  if (fast === null || slow === null || currentRsi === null) {
+    return {direction:"NONE", strength:0};
+  }
 
-  return {direction, strength:Math.min(100,Math.round(Math.abs(momentum)*1500))};
+  const recent = closes[closes.length - 1];
+  const earlier = closes[closes.length - 4];
+  const momentum = ((recent - earlier) / earlier) * 100;
+
+  let direction = "NONE";
+
+  if (fast > slow && momentum > 0 && currentRsi > 50 && currentRsi < 75) {
+    direction = "UP";
+  }
+
+  if (fast < slow && momentum < 0 && currentRsi < 50 && currentRsi > 25) {
+    direction = "DOWN";
+  }
+
+  return {
+    direction,
+    strength:Math.min(100, Math.round(Math.abs(momentum) * 1500))
+  };
 }
 
 function getSignal() {
-  return $("mode").value === "scalp" ? scalpSignal() : fiveMinuteSignal();
+  return $("mode").value === "scalp"
+    ? getScalpSignal()
+    : getFiveMinuteSignal();
 }
 
-function updateMarketSignal() {
+function updateSignal() {
   const result = getSignal();
+
   $("signal").textContent = result.direction;
-  $("signal").className = result.direction === "UP" ? "green" :
-                          result.direction === "DOWN" ? "red" : "yellow";
-  $("strength").textContent = result.direction === "NONE" ? "--" : result.strength + "%";
+  $("signal").className =
+    result.direction === "UP" ? "green" :
+    result.direction === "DOWN" ? "red" : "yellow";
+
+  $("strength").textContent =
+    result.direction === "NONE" ? "--" : result.strength + "%";
 
   maybeEnter(result.direction);
 }
@@ -270,78 +379,101 @@ function updateMarketSignal() {
 function maybeEnter(direction) {
   if (!currentPrice || direction === "NONE" || activeTrade) return;
 
-  const now = Date.now();
+  // Do not open new trades using an old price.
+  if (Date.now() - lastPriceUpdate > 10000) return;
+
   const mode = $("mode").value;
-  const cooldown = mode === "scalp" ? 60000 : 300000;
+  const now = Date.now();
 
-  if (now - lastEntryTime < cooldown) return;
-
-  if (mode === "five") {
+  if (mode === "scalp") {
+    if (!tradeSocket || tradeSocket.readyState !== WebSocket.OPEN) return;
+    if (now - scalpLastEntry < 60000) return;
+  } else {
     const bucket = Math.floor(now / 300000);
     if (bucket === lastFiveBucket) return;
-    lastFiveBucket = bucket;
+
+    const latestCandle = candles[candles.length - 1];
+    if (!latestCandle || latestCandle.time === lastCandleSignalTime) return;
   }
 
-  if (balance < MIN_STAKE) return;
+  if (balance < MIN_STAKE) {
+    $("positionNote").textContent = "Insufficient balance for minimum stake.";
+    return;
+  }
 
   const stake = Math.min(MAX_STAKE, balance);
-  if (stake < MIN_STAKE) return;
-
   const duration = mode === "scalp" ? 60000 : 300000;
   const takeProfit = mode === "scalp" ? 0.001 : 0.002;
   const stopLoss = mode === "scalp" ? 0.0006 : 0.0015;
 
   activeTrade = {
     direction,
-    entry: currentPrice,
+    entry:currentPrice,
     stake,
-    start: now,
-    end: now + duration,
+    start:now,
+    end:now + duration,
     takeProfit,
     stopLoss,
     mode
   };
 
-  lastEntryTime = now;
-  $("positionNote").textContent = "Paper trade opened automatically.";
+  if (mode === "scalp") {
+    scalpLastEntry = now;
+  } else {
+    lastFiveBucket = Math.floor(now / 300000);
+    lastCandleSignalTime = candles[candles.length - 1].time;
+  }
+
+  $("positionNote").textContent = "Automatic paper trade opened.";
   $("closeButton").disabled = false;
-  renderTrade();
+
+  renderActiveTrade();
 }
 
 function calculatePL(trade, price) {
-  const movement = trade.direction === "UP"
+  const change = trade.direction === "UP"
     ? (price - trade.entry) / trade.entry
     : (trade.entry - price) / trade.entry;
-  return trade.stake * movement;
+
+  return trade.stake * change;
 }
 
 function updateActiveTrade() {
-  if (!activeTrade) return;
+  if (!activeTrade || !currentPrice) return;
 
   const trade = activeTrade;
-  const pl = calculatePL(trade, currentPrice);
   const movement = trade.direction === "UP"
     ? (currentPrice - trade.entry) / trade.entry
     : (trade.entry - currentPrice) / trade.entry;
 
-  $("unrealized").textContent = money(pl);
-  $("unrealized").className = pl > 0 ? "green" : pl < 0 ? "red" : "";
+  const pl = calculatePL(trade, currentPrice);
 
-  const now = Date.now();
-  const seconds = Math.max(0, Math.ceil((trade.end - now) / 1000));
+  $("unrealized").textContent = money(pl);
+  $("unrealized").className =
+    pl > 0.000001 ? "green" :
+    pl < -0.000001 ? "red" : "";
+
+  const seconds = Math.max(0, Math.ceil((trade.end - Date.now()) / 1000));
   $("remaining").textContent = seconds + " sec";
 
-  if (movement >= trade.takeProfit) closeTrade("Take profit");
-  else if (movement <= -trade.stopLoss) closeTrade("Stop loss");
-  else if (now >= trade.end) closeTrade("Time expired");
+  if (movement >= trade.takeProfit) {
+    closeTrade("Take profit");
+  } else if (movement <= -trade.stopLoss) {
+    closeTrade("Stop loss");
+  } else if (Date.now() >= trade.end) {
+    closeTrade("Time expired");
+  }
 }
 
-function renderTrade() {
+function renderActiveTrade() {
   if (!activeTrade) return;
+
   $("activeDirection").textContent = activeTrade.direction;
-  $("activeDirection").className = "signal " + (activeTrade.direction === "UP" ? "green" : "red");
-  $("entry").textContent = "$" + formatPrice(activeTrade.entry);
-  $("live").textContent = "$" + formatPrice(currentPrice);
+  $("activeDirection").className =
+    "signal " + (activeTrade.direction === "UP" ? "green" : "red");
+
+  $("entry").textContent = "$" + priceText(activeTrade.entry);
+  $("live").textContent = "$" + priceText(currentPrice);
   $("stake").textContent = "$" + activeTrade.stake.toFixed(2);
 }
 
@@ -349,13 +481,15 @@ function closeTrade(reason) {
   if (!activeTrade || !currentPrice) return;
 
   const trade = activeTrade;
-  const pl = calculatePL(trade, currentPrice);
+  const exitPrice = currentPrice;
+  const pl = calculatePL(trade, exitPrice);
 
   balance += pl;
   netPL += pl;
   completed++;
 
   let result;
+
   if (pl > 0.000001) {
     wins++;
     result = "WIN";
@@ -372,13 +506,15 @@ function closeTrade(reason) {
     result,
     reason,
     entry:trade.entry,
-    exit:currentPrice,
+    exit:exitPrice,
+    stake:trade.stake,
     pl,
     mode:trade.mode
   });
-  history = history.slice(0,30);
 
+  history = history.slice(0, 30);
   activeTrade = null;
+
   $("activeDirection").textContent = "NONE";
   $("activeDirection").className = "signal";
   $("entry").textContent = "--";
@@ -401,9 +537,13 @@ function renderAccount() {
   $("completed").textContent = completed;
   $("record").textContent = wins + " / " + losses;
   $("breakeven").textContent = breakevens;
-  $("winrate").textContent = (completed ? (wins / completed * 100) : 0).toFixed(1) + "%";
+
+  $("winrate").textContent =
+    (completed ? wins / completed * 100 : 0).toFixed(1) + "%";
+
   $("net").textContent = money(netPL);
-  $("net").className = netPL > 0 ? "green" : netPL < 0 ? "red" : "";
+  $("net").className =
+    netPL > 0 ? "green" : netPL < 0 ? "red" : "";
 }
 
 function renderHistory() {
@@ -412,47 +552,68 @@ function renderHistory() {
     return;
   }
 
-  $("history").innerHTML = history.map(t => `
-    <div class="history">
-      <strong class="${t.result === "WIN" ? "green" : t.result === "LOSS" ? "red" : "yellow"}">
-        ${t.direction} · ${t.result} · ${t.reason}
-      </strong>
-      <div class="line"><span>Entry</span><strong>$${formatPrice(t.entry)}</strong></div>
-      <div class="line"><span>Exit</span><strong>$${formatPrice(t.exit)}</strong></div>
-      <div class="line"><span>Mode / P&L</span><strong>${t.mode.toUpperCase()} · ${money(t.pl)}</strong></div>
-    </div>
-  `).join("");
+  $("history").innerHTML = history.map(t => {
+    const resultClass =
+      t.result === "WIN" ? "green" :
+      t.result === "LOSS" ? "red" : "yellow";
+
+    return `
+      <div class="history">
+        <strong class="${resultClass}">
+          ${t.direction} · ${t.result} · ${t.reason}
+        </strong>
+        <div class="line"><span>Entry</span><strong>$${priceText(t.entry)}</strong></div>
+        <div class="line"><span>Exit</span><strong>$${priceText(t.exit)}</strong></div>
+        <div class="line"><span>Stake</span><strong>$${t.stake.toFixed(2)}</strong></div>
+        <div class="line"><span>${t.mode.toUpperCase()} P/L</span><strong>${money(t.pl)}</strong></div>
+      </div>
+    `;
+  }).join("");
 }
 
 function resetAccount() {
   if (activeTrade) {
-    alert("Close your active trade before resetting.");
+    alert("Close the active trade before resetting.");
     return;
   }
-  if (!confirm("Reset your paper account and trade history?")) return;
+
+  if (!confirm("Reset the paper account and all trade history?")) return;
 
   balance = START_BALANCE;
   netPL = 0;
-  wins = losses = breakevens = completed = 0;
+  wins = 0;
+  losses = 0;
+  breakevens = 0;
+  completed = 0;
   history = [];
-  lastEntryTime = 0;
+  scalpLastEntry = 0;
   lastFiveBucket = -1;
+  lastCandleSignalTime = 0;
+
   renderAccount();
   renderHistory();
   $("positionNote").textContent = "Paper account reset.";
 }
 
 $("mode").addEventListener("change", () => {
-  $("signal").textContent = "WAITING";
-  $("strength").textContent = "--";
-  updateMarketSignal();
+  updateSignal();
 });
+
+// Start the live feed, backup price polling, and completed-candle polling.
+connectSocket();
+getBackupPrice();
+getCandles();
+
+priceTimer = setInterval(getBackupPrice, 2000);
+candleTimer = setInterval(getCandles, 15000);
 
 setInterval(() => {
   if (activeTrade) updateActiveTrade();
-}, 250);
+  if (lastPriceUpdate && Date.now() - lastPriceUpdate > 15000) {
+    setStatus("Price feed stale — waiting for fresh data", "red");
+  }
+}, 500);
 
-connectMarket();
 renderAccount();
 renderHistory();
 </script>
