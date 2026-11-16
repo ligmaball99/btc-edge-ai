@@ -7,7 +7,7 @@
 <title>BTC Edge AI</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:18px;background:#080d16;color:white;font-family:Arial,sans-serif}
+body{margin:0;padding:18px;background:#080d16;color:#fff;font-family:Arial,sans-serif}
 h1{color:#f7931a;margin-bottom:4px}
 .sub,.muted{color:#94a3b8;font-size:13px}
 .card{background:#151e2d;border:1px solid #29374c;border-radius:15px;padding:18px;margin:15px 0}
@@ -15,13 +15,14 @@ h1{color:#f7931a;margin-bottom:4px}
 .signal{font-size:44px;font-weight:bold;margin:12px 0}
 .green{color:#22c55e}.red{color:#ef4444}.orange{color:#f7931a}
 .row{display:flex;justify-content:space-between;gap:10px;margin:14px 0}
-.value{font-weight:bold}
 button{width:100%;padding:14px;border:0;border-radius:10px;background:#f7931a;font-weight:bold;margin-top:10px}
+.trade{padding:12px;background:#202c3e;border-radius:9px;margin:9px 0;font-size:13px}
 </style>
 </head>
 <body>
+
 <h1>₿ BTC EDGE AI</h1>
-<div class="sub">5-Minute Bitcoin Signal Dashboard</div>
+<div class="sub">Automatic 5-Minute Bitcoin Paper Trader</div>
 
 <div class="card">
 <div class="muted">LIVE BITCOIN PRICE</div>
@@ -30,45 +31,74 @@ button{width:100%;padding:14px;border:0;border-radius:10px;background:#f7931a;fo
 </div>
 
 <div class="card">
-<div class="muted">5-MINUTE DIRECTIONAL SIGNAL</div>
+<div class="muted">AI DIRECTIONAL SIGNAL</div>
 <div class="signal" id="signal">WAIT</div>
 <div id="strength">Waiting for indicators</div>
-<p class="muted" id="reason">Analyzing market conditions.</p>
+<p class="muted" id="reason">Analyzing Bitcoin.</p>
 </div>
 
 <div class="card">
+<h3>Market Indicators</h3>
 <div class="row"><span class="muted">5-minute momentum</span><b id="momentum">--</b></div>
-<div class="row"><span class="muted">RSI (14)</span><b id="rsi">--</b></div>
+<div class="row"><span class="muted">RSI</span><b id="rsi">--</b></div>
 <div class="row"><span class="muted">EMA trend</span><b id="trend">--</b></div>
 <div class="row"><span class="muted">Volume</span><b id="volume">--</b></div>
-<div class="row"><span class="muted">Signal confidence score</span><b id="confidence">--</b></div>
+<div class="row"><span class="muted">Agreement</span><b id="agreement">--</b></div>
 </div>
 
 <div class="card">
-<h3>Paper Trading</h3>
+<h3>Automatic Paper Trading</h3>
 <div class="row"><span class="muted">Starting balance</span><b>$100.00</b></div>
 <div class="row"><span class="muted">Current balance</span><b id="balance">$100.00</b></div>
+<div class="row"><span class="muted">Trade stake</span><b>$10.00 max</b></div>
 <div class="row"><span class="muted">Completed trades</span><b id="trades">0</b></div>
 <div class="row"><span class="muted">Wins / Losses</span><b id="record">0 / 0</b></div>
 <div class="row"><span class="muted">Win rate</span><b id="winrate">--</b></div>
 <div class="row"><span class="muted">Paper profit</span><b id="profit">$0.00</b></div>
-<p class="muted" id="paper">Waiting for a valid signal.</p>
+<div class="row"><span class="muted">Active trade</span><b id="active">None</b></div>
+<div class="row"><span class="muted">Time remaining</span><b id="countdown">--</b></div>
+<p class="muted" id="paper">Waiting for a confirmed signal.</p>
+</div>
+
+<div class="card">
+<h3>Trade History</h3>
+<div id="history" class="muted">No completed trades yet.</div>
 </div>
 
 <button onclick="location.reload()">Reconnect / Refresh</button>
-<p class="muted">Experimental strategy. No guaranteed predictions. Binance spot prices are used for simulation, not actual Polymarket contract prices. Paper trading only; no real orders or wallet connection.</p>
+
+<p class="muted">
+Experimental paper-trading strategy. Results are simulations using
+BTC spot prices, not actual Polymarket contract prices. No real orders,
+wallet connection or guaranteed predictions.
+</p>
 
 <script>
 const $=id=>document.getElementById(id);
-let candles=[],socket=null,active=null;
-let balance=100,wins=0,losses=0,trades=0;
+
+// PAPER TRADING SETTINGS
+const STARTING_BALANCE=100;
+const MAX_STAKE=10;
+const TRADE_DURATION=300000;
+const TAKE_PROFIT=0.002;
+const STOP_LOSS=0.0015;
+
+let balance=STARTING_BALANCE;
+let wins=0,losses=0,trades=0;
+let candles=[];
+let socket=null;
+let active=null;
 let lastEntryBucket=null;
 let reconnectTimer=null;
+let history=[];
 
 function ema(values,period){
- let k=2/(period+1),v=values[0];
- for(let i=1;i<values.length;i++)v=values[i]*k+v*(1-k);
- return v;
+ let k=2/(period+1);
+ let value=values[0];
+ for(let i=1;i<values.length;i++){
+  value=values[i]*k+value*(1-k);
+ }
+ return value;
 }
 
 function calculateRSI(values){
@@ -87,36 +117,97 @@ function showPaper(){
  $("balance").textContent="$"+balance.toFixed(2);
  $("trades").textContent=trades;
  $("record").textContent=wins+" / "+losses;
- $("winrate").textContent=trades?(wins/trades*100).toFixed(1)+"%":"--";
- $("profit").textContent=(balance>=100?"+":"")+"$"+(balance-100).toFixed(2);
+ $("winrate").textContent=trades?
+  (wins/trades*100).toFixed(1)+"%":"--";
+ let profit=balance-STARTING_BALANCE;
+ $("profit").textContent=(profit>=0?"+":"")+
+  "$"+profit.toFixed(2);
 }
 
-function settleTrade(price){
+function updateHistory(){
+ $("history").innerHTML=history.length?
+  history.slice(0,10).map(t=>
+   '<div class="trade"><b>'+t.direction+
+   '</b> · '+t.result+' · '+(t.pnl>=0?"+":"")+
+   '$'+t.pnl.toFixed(2)+
+   '<br><span class="muted">Entry $'+
+   t.entry.toFixed(2)+' · Exit $'+
+   t.exit.toFixed(2)+'</span></div>'
+  ).join(""):"No completed trades yet.";
+}
+
+function finishTrade(price,reason){
  if(!active)return;
- let change=(price/active.entry-1)*
+
+ let move=(price/active.entry-1)*
   (active.direction==="UP"?1:-1);
- let result=active.stake*change;
- balance+=result;
+
+ let pnl=active.stake*move;
+ balance+=pnl;
  trades++;
- if(result>0)wins++;
+
+ if(pnl>0)wins++;
  else losses++;
- $("paper").textContent="Completed "+active.direction+
-  " simulation · "+(result>0?"WIN":"LOSS")+
-  " · "+(result>=0?"+":"")+"$"+result.toFixed(2);
+
+ let outcome=pnl>0?"WIN":pnl<0?"LOSS":"BREAKEVEN";
+
+ history.unshift({
+  direction:active.direction,
+  result:outcome+" · "+reason,
+  pnl:pnl,
+  entry:active.entry,
+  exit:price
+ });
+
+ $("paper").textContent=active.direction+
+  " trade closed · "+outcome+" · "+
+  (pnl>=0?"+":"")+"$"+pnl.toFixed(2)+
+  " · "+reason;
+
  active=null;
+ $("active").textContent="None";
+ $("countdown").textContent="--";
  showPaper();
+ updateHistory();
+}
+
+function openTrade(direction,price,endTime){
+ if(active||balance<=0)return;
+
+ let stake=Math.min(MAX_STAKE,balance);
+ active={
+  direction:direction,
+  entry:price,
+  stake:stake,
+  end:endTime+TRADE_DURATION
+ };
+
+ $("active").textContent=direction+" · $"+stake.toFixed(2);
+ $("paper").textContent="Automatic "+direction+
+  " paper trade opened at $"+price.toFixed(2);
+}
+
+function updateCountdown(){
+ if(!active)return;
+ let remaining=Math.max(0,active.end-Date.now());
+ let seconds=Math.ceil(remaining/1000);
+ $("countdown").textContent=
+  Math.floor(seconds/60)+":"+
+  String(seconds%60).padStart(2,"0");
 }
 
 function analyze(){
- if(candles.length<30)return;
+ let closed=candles.filter(c=>c.closed);
+ if(closed.length<40)return;
 
- let closes=candles.map(x=>x.close);
- let last=candles[candles.length-1];
- let previous=candles[candles.length-6];
+ let closes=closed.map(c=>c.close);
+ let last=closed[closed.length-1];
+ let previous=closed[closed.length-6];
+
  let momentum=(last.close/previous.close-1)*100;
  let fast=ema(closes.slice(-30),9);
  let slow=ema(closes.slice(-40),21);
- let strength=calculateRSI(closes);
+ let rsi=calculateRSI(closes);
 
  let score=0;
  if(fast>slow)score++;
@@ -125,75 +216,102 @@ function analyze(){
  if(momentum>0.035)score++;
  else if(momentum< -0.035)score--;
 
- if(strength>51&&strength<70)score++;
- else if(strength<49&&strength>30)score--;
+ if(rsi>51&&rsi<70)score++;
+ else if(rsi<49&&rsi>30)score--;
 
  let direction="NO TRADE";
  if(score===3)direction="UP";
  if(score===-3)direction="DOWN";
 
- let avgVolume=candles.slice(-20,-1)
+ let avgVolume=closed.slice(-20,-1)
   .reduce((sum,c)=>sum+c.volume,0)/19;
- let volumeRatio=avgVolume?last.volume/avgVolume:0;
 
- $("price").textContent="$"+last.close.toLocaleString("en-US",{
-  minimumFractionDigits:2,maximumFractionDigits:2
- });
+ let volumeRatio=avgVolume?
+  last.volume/avgVolume:0;
+
+ $("price").textContent="$"+last.close.toLocaleString(
+  "en-US",{minimumFractionDigits:2,maximumFractionDigits:2}
+ );
  $("momentum").textContent=momentum.toFixed(3)+"%";
- $("rsi").textContent=strength.toFixed(1);
+ $("rsi").textContent=rsi.toFixed(1);
  $("trend").textContent=fast>slow?"BULLISH":"BEARISH";
  $("volume").textContent=volumeRatio.toFixed(2)+"x average";
- $("confidence").textContent=Math.round(Math.abs(score)/3*100)+"% agreement";
-
+ $("agreement").textContent=Math.abs(score)+"/3";
  $("signal").textContent=direction;
  $("signal").className="signal "+
-  (direction==="UP"?"green":direction==="DOWN"?"red":"");
- $("strength").textContent="Indicator agreement: "+Math.abs(score)+"/3";
+  (direction==="UP"?"green":
+   direction==="DOWN"?"red":"");
+
+ $("strength").textContent=
+  "Indicator agreement: "+Math.abs(score)+"/3";
+
  $("reason").textContent=direction==="NO TRADE"?
-  "Indicators do not fully agree. Waiting.":
-  "EMA, momentum and RSI agree toward "+direction+
-  ". Agreement is not a probability of winning.";
+  "Waiting for all three indicators to agree.":
+  "All three indicators agree toward "+direction+
+  ". This is not a guaranteed prediction.";
 
- // Use completed candles to settle and open trades.
- if(!last.closed)return;
+ // Process each completed candle only once.
+ if(!last.closed||last.time===window.lastProcessed)return;
+ window.lastProcessed=last.time;
 
- if(active&&last.time>=active.end){
-  settleTrade(last.close);
+ let candleCloseTime=last.time+60000;
+
+ // Close at the five-minute expiry.
+ if(active&&candleCloseTime>=active.end){
+  finishTrade(last.close,"5-minute expiry");
  }
 
- let bucket=Math.floor(last.time/300000);
- if(!active&&direction!=="NO TRADE"&&bucket!==lastEntryBucket){
-  active={
-   direction:direction,
-   entry:last.close,
-   end:last.time+300000,
-   stake:Math.min(10,balance)
-  };
+ // One automatic entry per five-minute bucket.
+ let bucket=Math.floor(candleCloseTime/300000);
+
+ if(!active&&direction!=="NO TRADE"&&
+    bucket!==lastEntryBucket){
+  openTrade(direction,last.close,candleCloseTime);
   lastEntryBucket=bucket;
-  $("paper").textContent="Simulated "+direction+
-   " entry at $"+last.close.toFixed(2)+
-   " · Scheduled 5-minute duration";
+ }
+}
+
+function checkLiveExit(price){
+ if(!active)return;
+
+ let move=(price/active.entry-1)*
+  (active.direction==="UP"?1:-1);
+
+ if(move>=TAKE_PROFIT){
+  finishTrade(price,"Take-profit reached");
+ }else if(move<=-STOP_LOSS){
+  finishTrade(price,"Stop-loss reached");
  }
 }
 
 async function connect(){
  try{
   $("connection").textContent="Connecting to Binance...";
+
   const response=await fetch(
    "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100"
   );
-  if(!response.ok)throw Error("Data unavailable");
+
+  if(!response.ok)throw Error("Feed unavailable");
+
   const data=await response.json();
 
   candles=data.map(x=>({
-   time:x[0],close:+x[4],volume:+x[5],
+   time:x[0],
+   close:+x[4],
+   volume:+x[5],
    closed:true
   }));
-  // The newest REST candle may still be forming.
-  if(candles.length)candles[candles.length-1].closed=false;
+
+  if(candles.length){
+   candles[candles.length-1].closed=false;
+  }
+
   analyze();
 
-  socket=new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@kline_1m");
+  socket=new WebSocket(
+   "wss://stream.binance.com:9443/ws/btcusdt@kline_1m"
+  );
 
   socket.onopen=()=>{
    $("connection").textContent="LIVE · Binance connected";
@@ -202,13 +320,26 @@ async function connect(){
 
   socket.onmessage=event=>{
    let k=JSON.parse(event.data).k;
+
    let item={
-    time:k.t,close:+k.c,volume:+k.v,closed:k.x
+    time:k.t,
+    close:+k.c,
+    volume:+k.v,
+    closed:k.x
    };
-   let index=candles.findIndex(x=>x.time===item.time);
+
+   let index=candles.findIndex(c=>c.time===item.time);
+
    if(index>=0)candles[index]=item;
    else candles.push(item);
+
    if(candles.length>100)candles.shift();
+
+   $("price").textContent="$"+item.close.toLocaleString(
+    "en-US",{minimumFractionDigits:2,maximumFractionDigits:2}
+   );
+
+   checkLiveExit(item.close);
    analyze();
   };
 
@@ -218,17 +349,20 @@ async function connect(){
 
   socket.onclose=()=>{
    $("connection").textContent="Disconnected · Reconnecting...";
+   $("connection").style.color="#ef4444";
    clearTimeout(reconnectTimer);
    reconnectTimer=setTimeout(connect,5000);
   };
 
  }catch(error){
   $("connection").textContent="Feed unavailable · Retrying...";
+  $("connection").style.color="#ef4444";
   clearTimeout(reconnectTimer);
   reconnectTimer=setTimeout(connect,5000);
  }
 }
 
+setInterval(updateCountdown,1000);
 showPaper();
 connect();
 </script>
