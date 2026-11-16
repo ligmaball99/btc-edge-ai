@@ -4,72 +4,84 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BTC EDGE AI</title>
+<title>BTC EDGE AI V5</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:18px;background:#080d16;color:#fff;font-family:Arial,sans-serif}
-h1{color:#f7931a;margin-bottom:4px}
+body{margin:0;padding:16px;background:#080d16;color:#fff;font-family:Arial,sans-serif}
+h1{color:#f7931a;margin:0 0 5px}
 .sub,.muted{color:#94a3b8;font-size:13px}
-.card{background:#151e2d;border:1px solid #29374c;border-radius:15px;padding:18px;margin:15px 0}
+.card{background:#151e2d;border:1px solid #29374c;border-radius:15px;padding:17px;margin:14px 0}
 .price{font-size:35px;font-weight:bold;margin:12px 0}
-.signal{font-size:40px;font-weight:bold;margin:12px 0}
+.signal{font-size:38px;font-weight:bold;margin:12px 0}
 .green{color:#22c55e}.red{color:#ef4444}.orange{color:#f7931a}
-.row{display:flex;justify-content:space-between;gap:10px;margin:14px 0}
-.trade{padding:12px;background:#202c3e;border-radius:9px;margin:9px 0;font-size:13px}
-.status{font-size:12px;margin-top:5px}
-button{width:100%;padding:14px;border:0;border-radius:10px;background:#f7931a;font-weight:bold;margin-top:10px}
+.row{display:flex;justify-content:space-between;gap:10px;margin:13px 0}
+select,button{width:100%;padding:14px;border-radius:10px;font-weight:bold}
+select{background:#202c3e;color:white;border:1px solid #475569}
+button{background:#f7931a;border:0;margin-top:10px}
+.trade{background:#202c3e;padding:11px;border-radius:9px;margin:8px 0;font-size:13px}
 .small{font-size:11px;color:#94a3b8}
 </style>
 </head>
 <body>
 
 <h1>₿ BTC EDGE AI</h1>
-<div class="sub">Live Bitcoin · 5-Minute Paper Trading</div>
+<div class="sub">Live Bitcoin Trading Intelligence V5</div>
 
 <div class="card">
-<div class="muted">LIVE BTC PRICE</div>
+<div class="muted">LIVE BITCOIN PRICE · BINANCE</div>
 <div class="price" id="price">Connecting...</div>
-<div class="status" id="priceStatus">Waiting for live trades...</div>
-<div class="muted" id="connection">Connecting to Binance...</div>
+<div id="connection" class="muted">Connecting to live market...</div>
+<div id="feedAge" class="small">Waiting for price feed</div>
+</div>
+
+<div class="card">
+<h3>Trading Mode</h3>
+<select id="mode">
+<option value="scalp">SCALPING · 60 seconds</option>
+<option value="five">5-MINUTE TRADING</option>
+</select>
+<p class="muted" id="modeDescription">
+Short-term momentum strategy with automatic exits.
+</p>
 </div>
 
 <div class="card">
 <div class="muted">CURRENT MARKET SIGNAL</div>
 <div class="signal" id="signal">WAIT</div>
-<div id="strength">Waiting for indicators</div>
-<p class="muted" id="reason">Analyzing completed candles.</p>
-<div class="small" id="signalTime">No confirmed signal yet</div>
+<div id="agreement">Waiting for confirmation</div>
+<p class="muted" id="reason">Collecting market data.</p>
+<div class="row"><span class="muted">Signal updated</span><b id="signalTime">--</b></div>
 </div>
 
 <div class="card">
 <h3>Market Indicators</h3>
+<div class="row"><span class="muted">15-second momentum</span><b id="shortMomentum">--</b></div>
+<div class="row"><span class="muted">60-second momentum</span><b id="longMomentum">--</b></div>
 <div class="row"><span class="muted">5-minute momentum</span><b id="momentum">--</b></div>
 <div class="row"><span class="muted">RSI (14)</span><b id="rsi">--</b></div>
 <div class="row"><span class="muted">EMA trend</span><b id="trend">--</b></div>
-<div class="row"><span class="muted">Volume</span><b id="volume">--</b></div>
-<div class="row"><span class="muted">Indicator agreement</span><b id="agreement">--</b></div>
 </div>
 
 <div class="card">
-<h3>ACTIVE PAPER TRADE</h3>
-<div class="signal" id="activeDirection">NONE</div>
-<div class="row"><span class="muted">Entry price</span><b id="entryPrice">--</b></div>
-<div class="row"><span class="muted">Current price</span><b id="tradePrice">--</b></div>
-<div class="row"><span class="muted">Paper stake</span><b id="stake">$0.00</b></div>
-<div class="row"><span class="muted">Unrealized P/L</span><b id="unrealized">$0.00</b></div>
-<div class="row"><span class="muted">Time remaining</span><b id="countdown">--</b></div>
-<p class="muted" id="paper">Waiting for a confirmed entry.</p>
-</div>
-
-<div class="card">
-<h3>Paper Trading Account</h3>
+<h3 id="accountTitle">Scalping Paper Account</h3>
 <div class="row"><span class="muted">Starting balance</span><b>$100.00</b></div>
 <div class="row"><span class="muted">Current balance</span><b id="balance">$100.00</b></div>
-<div class="row"><span class="muted">Maximum stake</span><b>$10.00</b></div>
+<div class="row"><span class="muted">Paper stake</span><b>$10 maximum</b></div>
 <div class="row"><span class="muted">Completed trades</span><b id="trades">0</b></div>
 <div class="row"><span class="muted">Wins / Losses</span><b id="record">0 / 0</b></div>
 <div class="row"><span class="muted">Win rate</span><b id="winrate">--</b></div>
-<div class="row"><span class="muted">Total paper P/L</span><b id="profit">$0.00</b></div>
+<div class="row"><span class="muted">Total P/L</span><b id="profit">$0.00</b></div>
+</div>
+
+<div class="card">
+<h3>ACTIVE TRADE</h3>
+<div class="signal" id="activeDirection">NONE</div>
+<div class="row"><span class="muted">Entry price</span><b id="entryPrice">--</b></div>
+<div class="row"><span class="muted">Live price</span><b id="tradePrice">--</b></div>
+<div class="row"><span class="muted">Stake</span><b id="stake">--</b></div>
+<div class="row"><span class="muted">Unrealized P/L</span><b id="unrealized">--</b></div>
+<div class="row"><span class="muted">Time remaining</span><b id="countdown">--</b></div>
+<p class="muted" id="paper">Waiting for a confirmed signal.</p>
 </div>
 
 <div class="card">
@@ -80,111 +92,158 @@ button{width:100%;padding:14px;border:0;border-radius:10px;background:#f7931a;fo
 <button onclick="location.reload()">Reconnect / Refresh</button>
 
 <p class="small">
-Experimental paper strategy. Live BTC trades come from Binance.
-Signals use completed one-minute candles. Simulated results are based
-on BTC spot-price movement, not Polymarket contract prices or payouts.
-No real orders or wallet connection.
+Experimental paper trading only. Binance spot prices are used.
+No Polymarket contract prices, real orders or wallet connection.
+Paper results are not proof of profitability.
 </p>
 
 <script>
 const $=id=>document.getElementById(id);
 
-const START_BALANCE=100;
-const MAX_STAKE=10;
-const DURATION=300000;
-const TAKE_PROFIT=0.002;
-const STOP_LOSS=0.0015;
-const STORAGE="btc_edge_fixed_v4";
+const START=100;
+const STAKE=10;
+
+// SCALPING SETTINGS
+const SCALP_DURATION=60000;
+const SCALP_TP=0.0008;
+const SCALP_SL=0.0006;
+const SCALP_COOLDOWN=60000;
+
+// FIVE-MINUTE SETTINGS
+const FIVE_DURATION=300000;
+const FIVE_TP=0.002;
+const FIVE_SL=0.0015;
+
+const KEY="btc_edge_v5";
 
 let candles=[];
+let ticks=[];
 let socket=null;
 let currentPrice=null;
-let priceReceivedAt=0;
-let active=null;
-let balance=START_BALANCE;
-let wins=0,losses=0,trades=0;
-let history=[];
-let lastEntryBucket=null;
-let lastProcessedCandle=null;
+let serverOffset=0;
+let lastPriceTime=0;
 let reconnectTimer=null;
 let reconnectDelay=3000;
 let connecting=false;
-let signalDirection="WAIT";
+
+let mode="scalp";
+let lastScalpEntry=0;
+let lastFiveEntryBucket=null;
+let lastProcessedCandle=null;
+
+let accounts={
+ scalp:{balance:100,wins:0,losses:0,trades:0,history:[],active:null},
+ five:{balance:100,wins:0,losses:0,trades:0,history:[],active:null}
+};
+
+let signals={
+ scalp:"WAIT",
+ five:"WAIT"
+};
+
+function now(){
+ return Date.now()+serverOffset;
+}
+
+function fmt(n){
+ return "$"+Number(n).toLocaleString("en-US",{
+  minimumFractionDigits:2,
+  maximumFractionDigits:2
+ });
+}
 
 function save(){
  try{
-  localStorage.setItem(STORAGE,JSON.stringify({
-   balance,wins,losses,trades,history,active,lastEntryBucket
+  localStorage.setItem(KEY,JSON.stringify({
+   accounts,lastScalpEntry,lastFiveEntryBucket
   }));
  }catch(e){}
 }
 
 function restore(){
  try{
-  const s=JSON.parse(localStorage.getItem(STORAGE));
+  let s=JSON.parse(localStorage.getItem(KEY));
   if(!s)return;
-  if(Number.isFinite(s.balance))balance=s.balance;
-  if(Number.isFinite(s.wins))wins=s.wins;
-  if(Number.isFinite(s.losses))losses=s.losses;
-  if(Number.isFinite(s.trades))trades=s.trades;
-  if(Array.isArray(s.history))history=s.history;
-  if(s.active)active=s.active;
-  if(Number.isFinite(s.lastEntryBucket))lastEntryBucket=s.lastEntryBucket;
+
+  if(s.accounts){
+   ["scalp","five"].forEach(key=>{
+    if(s.accounts[key]){
+     accounts[key]={
+      ...accounts[key],
+      ...s.accounts[key]
+     };
+    }
+   });
+  }
+
+  if(Number.isFinite(s.lastScalpEntry))
+   lastScalpEntry=s.lastScalpEntry;
+
+  if(Number.isFinite(s.lastFiveEntryBucket))
+   lastFiveEntryBucket=s.lastFiveEntryBucket;
+
  }catch(e){}
 }
 
-function fmt(n){
- return "$"+Number(n).toLocaleString("en-US",{
-  minimumFractionDigits:2,maximumFractionDigits:2
- });
-}
-
 function ema(values,period){
- let k=2/(period+1),v=values[0];
- for(let i=1;i<values.length;i++)v=values[i]*k+v*(1-k);
+ let k=2/(period+1);
+ let v=values[0];
+ for(let i=1;i<values.length;i++)
+  v=values[i]*k+v*(1-k);
  return v;
 }
 
 function rsi(values){
  let up=0,down=0;
+
  for(let i=values.length-14;i<values.length;i++){
-  const change=values[i]-values[i-1];
+  let change=values[i]-values[i-1];
   if(change>0)up+=change;
   else down-=change;
  }
+
  if(down===0)return 100;
  if(up===0)return 0;
+
  return 100-100/(1+(up/14)/(down/14));
 }
 
 function updateAccount(){
- $("balance").textContent=fmt(balance);
- $("trades").textContent=trades;
- $("record").textContent=wins+" / "+losses;
- $("winrate").textContent=trades?
-  (wins/trades*100).toFixed(1)+"%":"--";
- const profit=balance-START_BALANCE;
+ let a=accounts[mode];
+
+ $("accountTitle").textContent=
+  mode==="scalp"?"Scalping Paper Account":"5-Minute Paper Account";
+
+ $("balance").textContent=fmt(a.balance);
+ $("trades").textContent=a.trades;
+ $("record").textContent=a.wins+" / "+a.losses;
+
+ $("winrate").textContent=a.trades?
+  (a.wins/a.trades*100).toFixed(1)+"%":"--";
+
+ let profit=a.balance-START;
  $("profit").textContent=(profit>=0?"+":"")+fmt(profit);
  $("profit").className=profit>=0?"green":"red";
 }
 
 function updateHistory(){
- const el=$("history");
+ let a=accounts[mode];
+ let el=$("history");
  el.replaceChildren();
 
- if(!history.length){
+ if(!a.history.length){
   el.textContent="No completed trades yet.";
   return;
  }
 
- history.slice(0,15).forEach(t=>{
-  const box=document.createElement("div");
+ a.history.slice(0,15).forEach(t=>{
+  let box=document.createElement("div");
   box.className="trade";
 
-  const title=document.createElement("b");
+  let title=document.createElement("b");
   title.textContent=t.direction+" · "+t.result;
 
-  const detail=document.createElement("div");
+  let detail=document.createElement("div");
   detail.className="muted";
   detail.textContent="Entry "+fmt(t.entry)+
    " · Exit "+fmt(t.exit)+
@@ -196,142 +255,182 @@ function updateHistory(){
 }
 
 function updateActive(){
- if(!active){
+ let a=accounts[mode].active;
+
+ if(!a){
   $("activeDirection").textContent="NONE";
   $("activeDirection").className="signal";
   $("entryPrice").textContent="--";
   $("tradePrice").textContent="--";
-  $("stake").textContent="$0.00";
-  $("unrealized").textContent="$0.00";
+  $("stake").textContent="--";
+  $("unrealized").textContent="--";
   $("countdown").textContent="--";
   return;
  }
 
- $("activeDirection").textContent=active.direction;
+ $("activeDirection").textContent=a.direction;
  $("activeDirection").className="signal "+
-  (active.direction==="UP"?"green":"red");
+  (a.direction==="UP"?"green":"red");
 
- $("entryPrice").textContent=fmt(active.entry);
+ $("entryPrice").textContent=fmt(a.entry);
  $("tradePrice").textContent=currentPrice?fmt(currentPrice):"--";
- $("stake").textContent=fmt(active.stake);
+ $("stake").textContent=fmt(a.stake);
 
  if(currentPrice){
-  const move=(currentPrice/active.entry-1)*
-   (active.direction==="UP"?1:-1);
-  const pnl=active.stake*move;
+  let change=(currentPrice/a.entry-1)*
+   (a.direction==="UP"?1:-1);
+  let pnl=a.stake*change;
+
   $("unrealized").textContent=(pnl>=0?"+":"")+fmt(pnl);
   $("unrealized").className=pnl>=0?"green":"red";
  }
 }
 
-function finishTrade(price,reason){
- if(!active||!Number.isFinite(price)||price<=0)return;
+function finishTrade(key,price,reason){
+ let a=accounts[key];
+ let t=a.active;
 
- const move=(price/active.entry-1)*
-  (active.direction==="UP"?1:-1);
+ if(!t||!Number.isFinite(price)||price<=0)return;
 
- const pnl=active.stake*move;
- balance+=pnl;
- trades++;
+ let change=(price/t.entry-1)*
+  (t.direction==="UP"?1:-1);
 
- if(pnl>0)wins++;
- else losses++;
+ let pnl=t.stake*change;
 
- const result=pnl>0?"WIN":pnl<0?"LOSS":"BREAKEVEN";
+ a.balance+=pnl;
+ a.trades++;
 
- history.unshift({
-  direction:active.direction,
-  result:result+" · "+reason,
-  entry:active.entry,
+ if(pnl>0)a.wins++;
+ else a.losses++;
+
+ a.history.unshift({
+  direction:t.direction,
+  result:(pnl>0?"WIN":pnl<0?"LOSS":"BREAKEVEN")+
+   " · "+reason,
+  entry:t.entry,
   exit:price,
   pnl:pnl
  });
 
- history=history.slice(0,50);
+ a.history=a.history.slice(0,50);
+ a.active=null;
 
- $("paper").textContent="Closed "+active.direction+
-  " · "+result+" · "+(pnl>=0?"+":"")+fmt(pnl)+
-  " · "+reason;
+ if(key===mode){
+  $("paper").textContent="Closed "+t.direction+
+   " · "+(pnl>0?"WIN":pnl<0?"LOSS":"BREAKEVEN")+
+   " · "+(pnl>=0?"+":"")+fmt(pnl)+
+   " · "+reason;
 
- active=null;
- updateAccount();
- updateHistory();
- updateActive();
+  updateAccount();
+  updateActive();
+  updateHistory();
+ }
+
  save();
 }
 
-function checkExit(now){
- if(!active||!currentPrice)return;
- if(Date.now()-priceReceivedAt>15000)return;
+function checkExits(){
+ if(!currentPrice||Date.now()-lastPriceTime>10000)return;
 
- const move=(currentPrice/active.entry-1)*
-  (active.direction==="UP"?1:-1);
+ ["scalp","five"].forEach(key=>{
+  let a=accounts[key].active;
+  if(!a)return;
 
- if(move>=TAKE_PROFIT){
-  finishTrade(currentPrice,"Take profit");
- }else if(move<=-STOP_LOSS){
-  finishTrade(currentPrice,"Stop loss");
- }else if(now>=active.end){
-  finishTrade(currentPrice,"Five-minute expiry");
- }
+  let change=(currentPrice/a.entry-1)*
+   (a.direction==="UP"?1:-1);
+
+  if(change>=a.tp){
+   finishTrade(key,currentPrice,"Take profit");
+  }else if(change<=-a.sl){
+   finishTrade(key,currentPrice,"Stop loss");
+  }else if(now()>=a.end){
+   finishTrade(key,currentPrice,"Time expired");
+  }
+ });
 }
 
-function openTrade(direction){
- if(active||!currentPrice||balance<=0)return;
+function openTrade(key,direction,duration,tp,sl){
+ let account=accounts[key];
 
- const bucket=Math.floor(Date.now()/300000);
- if(bucket===lastEntryBucket)return;
+ if(account.active||!currentPrice)return;
 
- const stake=Math.min(MAX_STAKE,balance);
+ let stake=Math.min(STAKE,account.balance);
+ if(stake<=0)return;
 
- active={
-  direction:direction,
+ account.active={
+  direction,
   entry:currentPrice,
-  stake:stake,
-  start:Date.now(),
-  end:Date.now()+DURATION
+  stake,
+  start:now(),
+  end:now()+duration,
+  tp,sl
  };
 
- lastEntryBucket=bucket;
+ if(key===mode){
+  $("paper").textContent="Automatic "+direction+
+   " trade opened at "+fmt(currentPrice);
+  updateActive();
+ }
 
- $("paper").textContent="Opened "+direction+
-  " at live BTC price "+fmt(currentPrice);
-
- updateActive();
  save();
 }
 
-function updateSignal(direction,score){
- signalDirection=direction;
-
+function signalDisplay(direction,score,reason){
  $("signal").textContent=direction;
  $("signal").className="signal "+
   (direction==="UP"?"green":
    direction==="DOWN"?"red":"");
 
- $("strength").textContent="Indicator agreement: "+score+"/3";
- $("signalTime").textContent="Last confirmed candle: "+
-  new Date().toLocaleTimeString();
- $("reason").textContent=direction==="NO TRADE"?
-  "Indicators do not fully agree. No new entry.":
-  "All three indicators agree toward "+direction+
-  ". This is not a win probability.";
+ $("agreement").textContent=score;
+ $("reason").textContent=reason;
+ $("signalTime").textContent=new Date().toLocaleTimeString();
 }
 
-function analyze(){
- const closed=candles.filter(c=>c.closed);
+function getScalpSignal(){
+ if(ticks.length<10)return "WAIT";
+
+ let time=now();
+
+ let recent=ticks.filter(t=>time-t.time<=15000);
+ let older=ticks.filter(t=>time-t.time>=45000&&time-t.time<=65000);
+
+ if(recent.length<3||older.length<2)return "WAIT";
+
+ let first=older[0].price;
+ let last=currentPrice;
+
+ let shortMove=(last/recent[0].price-1)*100;
+ let longMove=(last/first-1)*100;
+
+ $("shortMomentum").textContent=shortMove.toFixed(4)+"%";
+ $("longMomentum").textContent=longMove.toFixed(4)+"%";
+
+ // Require short and longer momentum to agree.
+ if(shortMove>0.025&&longMove>0.035)return "UP";
+ if(shortMove< -0.025&&longMove< -0.035)return "DOWN";
+
+ return "NO TRADE";
+}
+
+function analyzeFive(){
+ let closed=candles.filter(c=>c.closed);
  if(closed.length<40)return;
 
- const closes=closed.map(c=>c.close);
- const last=closed[closed.length-1];
- const previous=closed[closed.length-6];
+ let closes=closed.map(c=>c.close);
+ let last=closed[closed.length-1];
+ let previous=closed[closed.length-6];
 
- const momentum=(last.close/previous.close-1)*100;
- const fast=ema(closes.slice(-30),9);
- const slow=ema(closes.slice(-40),21);
- const strength=rsi(closes);
+ let momentum=(last.close/previous.close-1)*100;
+ let fast=ema(closes.slice(-30),9);
+ let slow=ema(closes.slice(-40),21);
+ let strength=rsi(closes);
+
+ $("momentum").textContent=momentum.toFixed(3)+"%";
+ $("rsi").textContent=strength.toFixed(1);
+ $("trend").textContent=fast>slow?"BULLISH":"BEARISH";
 
  let score=0;
+
  if(fast>slow)score++;
  else if(fast<slow)score--;
 
@@ -341,101 +440,110 @@ function analyze(){
  if(strength>51&&strength<70)score++;
  else if(strength<49&&strength>30)score--;
 
- let direction="NO TRADE";
- if(score===3)direction="UP";
- if(score===-3)direction="DOWN";
+ let direction=score===3?"UP":
+  score===-3?"DOWN":"NO TRADE";
 
- const avgVolume=closed.slice(-20,-1)
-  .reduce((sum,c)=>sum+c.volume,0)/19;
+ signals.five=direction;
 
- const volumeRatio=avgVolume?last.volume/avgVolume:0;
-
- $("momentum").textContent=momentum.toFixed(3)+"%";
- $("rsi").textContent=strength.toFixed(1);
- $("trend").textContent=fast>slow?"BULLISH":"BEARISH";
- $("volume").textContent=volumeRatio.toFixed(2)+"x average";
- $("agreement").textContent=Math.abs(score)+"/3";
-
- // A signal is updated only when a new completed candle arrives.
  if(last.time===lastProcessedCandle)return;
  lastProcessedCandle=last.time;
 
- updateSignal(direction,Math.abs(score));
+ let bucket=Math.floor(now()/300000);
 
- // Active trade direction is deliberately NOT changed here.
- if(!active&&direction!=="NO TRADE"&&currentPrice){
-  openTrade(direction);
- }
-}
+ if(direction!=="NO TRADE"&&
+    !accounts.five.active&&
+    bucket!==lastFiveEntryBucket){
 
-function setLivePrice(price){
- if(!Number.isFinite(price)||price<=0)return;
-
- currentPrice=price;
- priceReceivedAt=Date.now();
-
- $("price").textContent=fmt(price);
- $("priceStatus").textContent=
-  "Live trade update · "+new Date().toLocaleTimeString();
- $("priceStatus").className="status green";
-
- if(active){
-  checkExit(Date.now());
- }
- updateActive();
-}
-
-async function loadInitialData(){
- const [klines,ticker]=await Promise.all([
-  fetch("https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100"),
-  fetch("https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT")
- ]);
-
- if(!klines.ok||!ticker.ok)throw Error("Binance REST unavailable");
-
- const kdata=await klines.json();
- const tdata=await ticker.json();
-
- candles=kdata.map(x=>({
-  time:x[0],
-  close:+x[4],
-  volume:+x[5],
-  closed:true
- }));
-
- if(candles.length){
-  const latest=candles[candles.length-1];
-  // Do not treat the currently forming candle as completed.
-  if(Date.now()<latest.time+60000){
-   latest.closed=false;
-  }
- }
-
- setLivePrice(+tdata.price);
-
- const closed=candles.filter(c=>c.closed);
- if(closed.length){
-  const newest=closed[closed.length-1].time;
-  if(lastProcessedCandle===null||newest>lastProcessedCandle){
-   // Startup/reconnect must not create a trade from old candles.
-   lastProcessedCandle=newest;
-  }
- }
-
- if(lastEntryBucket===null){
-  lastEntryBucket=Math.floor(Date.now()/300000);
+  openTrade("five",direction,FIVE_DURATION,FIVE_TP,FIVE_SL);
+  lastFiveEntryBucket=bucket;
   save();
  }
 
- // Restore indicators without opening a historical trade.
- if(closed.length>=40){
-  const savedProcessed=lastProcessedCandle;
-  lastProcessedCandle=null;
-  analyze();
-  lastProcessedCandle=savedProcessed;
+ if(mode==="five"){
+  signalDisplay(direction,Math.abs(score)+"/3",
+   direction==="NO TRADE"?
+   "Waiting for all three indicators to agree.":
+   "EMA, RSI and momentum agree toward "+direction);
+ }
+}
+
+function analyzeScalp(){
+ let direction=getScalpSignal();
+ signals.scalp=direction;
+
+ if(direction!=="WAIT"&&direction!=="NO TRADE"&&
+    !accounts.scalp.active&&
+    now()-lastScalpEntry>=SCALP_COOLDOWN){
+
+  openTrade("scalp",direction,SCALP_DURATION,SCALP_TP,SCALP_SL);
+  lastScalpEntry=now();
+  save();
  }
 
- checkExit(Date.now());
+ if(mode==="scalp"){
+  signalDisplay(direction,
+   direction==="WAIT"?"Collecting ticks":
+   direction==="NO TRADE"?"No agreement":"Momentum confirmed",
+   direction==="UP"?"Short-term momentum is positive.":
+   direction==="DOWN"?"Short-term momentum is negative.":
+   direction==="WAIT"?"Waiting for enough live price samples.":
+   "Waiting for clearer momentum.");
+ }
+}
+
+function setLivePrice(price,eventTime){
+ if(!Number.isFinite(price)||price<=0)return;
+
+ if(Number.isFinite(eventTime)&&eventTime>0){
+  let measured=eventTime-Date.now();
+  serverOffset=serverOffset===0?measured:
+   serverOffset*0.9+measured*0.1;
+ }
+
+ currentPrice=price;
+ lastPriceTime=Date.now();
+
+ $("price").textContent=fmt(price);
+ $("feedAge").textContent="Live trade update · "+
+  new Date().toLocaleTimeString();
+ $("feedAge").className="small green";
+
+ if(mode==="scalp"){
+  ticks.push({time:now(),price});
+  ticks=ticks.filter(t=>now()-t.time<90000);
+  analyzeScalp();
+ }
+
+ checkExits();
+ updateActive();
+}
+
+function updateMode(){
+ mode=$("mode").value;
+
+ $("modeDescription").textContent=mode==="scalp"?
+  "15-second and 60-second momentum. Maximum 60-second holding period.":
+  "EMA 9/21, RSI and momentum. Five-minute holding period.";
+
+ if(mode==="scalp"){
+  $("shortMomentum").parentElement.style.display="flex";
+  $("longMomentum").parentElement.style.display="flex";
+  $("momentum").parentElement.style.display="none";
+  $("rsi").parentElement.style.display="none";
+  $("trend").parentElement.style.display="none";
+  $("signal").textContent=signals.scalp;
+ }else{
+  $("shortMomentum").parentElement.style.display="none";
+  $("longMomentum").parentElement.style.display="none";
+  $("momentum").parentElement.style.display="flex";
+  $("rsi").parentElement.style.display="flex";
+  $("trend").parentElement.style.display="flex";
+  $("signal").textContent=signals.five;
+ }
+
+ updateAccount();
+ updateHistory();
+ updateActive();
 }
 
 function connect(){
@@ -444,16 +552,47 @@ function connect(){
 
  clearTimeout(reconnectTimer);
 
- $("connection").textContent="Connecting to Binance live trade stream...";
+ $("connection").textContent="Loading live Binance data...";
 
- loadInitialData().then(()=>{
+ Promise.all([
+  fetch("https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100"),
+  fetch("https://data-api.binance.vision/api/v3/ticker/price?symbol=BTCUSDT")
+ ]).then(async responses=>{
+  if(!responses[0].ok||!responses[1].ok)
+   throw Error("Binance REST error");
+
+  let kdata=await responses[0].json();
+  let ticker=await responses[1].json();
+
+  candles=kdata.map(x=>({
+   time:x[0],
+   close:+x[4],
+   volume:+x[5],
+   closed:true
+  }));
+
+  if(candles.length&&
+     Date.now()<candles[candles.length-1].time+60000){
+   candles[candles.length-1].closed=false;
+  }
+
+  currentPrice=+ticker.price;
+  $("price").textContent=fmt(currentPrice);
+
+  let closed=candles.filter(c=>c.closed);
+  if(closed.length){
+   lastProcessedCandle=closed[closed.length-1].time;
+  }
+
+  if(!lastFiveEntryBucket){
+   lastFiveEntryBucket=Math.floor(now()/300000);
+  }
+
   if(socket){
    socket.onclose=null;
    socket.close();
   }
 
-  // Individual BTC trades update the price continuously.
-  // One-minute candles separately update the confirmed signal.
   socket=new WebSocket(
    "wss://stream.binance.com:9443/stream?streams=btcusdt@trade/btcusdt@kline_1m"
   );
@@ -461,38 +600,36 @@ function connect(){
   socket.onopen=()=>{
    connecting=false;
    reconnectDelay=3000;
-   $("connection").textContent="LIVE · Binance WebSocket connected";
+   $("connection").textContent="LIVE · Binance connected";
    $("connection").className="green";
   };
 
   socket.onmessage=event=>{
-   const message=JSON.parse(event.data);
-   const stream=message.stream;
-   const data=message.data;
+   let message=JSON.parse(event.data);
+   let data=message.data;
 
-   if(stream==="btcusdt@trade"){
-    setLivePrice(+data.p);
+   if(message.stream==="btcusdt@trade"){
+    setLivePrice(+data.p,+data.T);
     return;
    }
 
-   if(stream==="btcusdt@kline_1m"){
-    const k=data.k;
-    const item={
+   if(message.stream==="btcusdt@kline_1m"){
+    let k=data.k;
+    let candle={
      time:k.t,
      close:+k.c,
      volume:+k.v,
      closed:k.x
     };
 
-    const index=candles.findIndex(c=>c.time===item.time);
-    if(index>=0)candles[index]=item;
-    else candles.push(item);
+    let index=candles.findIndex(c=>c.time===candle.time);
+
+    if(index>=0)candles[index]=candle;
+    else candles.push(candle);
 
     if(candles.length>100)candles.shift();
 
-    if(item.closed){
-     analyze();
-    }
+    if(candle.closed)analyzeFive();
    }
   };
 
@@ -517,31 +654,45 @@ function connect(){
  });
 }
 
-restore();
-updateAccount();
-updateHistory();
-updateActive();
+function updateClock(){
+ checkExits();
 
-if(active){
- $("paper").textContent="Restored active "+active.direction+
-  " trade. Waiting for fresh market price.";
-}
+ let a=accounts[mode].active;
 
-setInterval(()=>{
- updateCountdown();
- checkExit(Date.now());
-},250);
-
-function updateCountdown(){
- if(!active){
+ if(!a){
   $("countdown").textContent="--";
   return;
  }
- const seconds=Math.max(0,Math.ceil((active.end-Date.now())/1000));
+
+ let remaining=Math.max(0,a.end-now());
+ let seconds=Math.ceil(remaining/1000);
+
  $("countdown").textContent=
   Math.floor(seconds/60)+":"+
   String(seconds%60).padStart(2,"0");
 }
+
+$("mode").addEventListener("change",updateMode);
+
+restore();
+updateMode();
+updateAccount();
+updateHistory();
+updateActive();
+
+if(accounts[mode].active){
+ $("paper").textContent="Restored active trade.";
+}
+
+setInterval(updateClock,250);
+
+setInterval(()=>{
+ if(lastPriceTime&&Date.now()-lastPriceTime>5000){
+  $("feedAge").textContent="Price feed delayed · "+
+   Math.floor((Date.now()-lastPriceTime)/1000)+" seconds";
+  $("feedAge").className="small red";
+ }
+},1000);
 
 connect();
 </script>
